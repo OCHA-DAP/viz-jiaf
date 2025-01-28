@@ -1,109 +1,85 @@
 <script>
   import { onMount } from 'svelte';
-  import axios from 'axios';
   import Papa from 'papaparse';
   import * as d3 from 'd3';
-
-  import HNOView from './lib/HNOView.svelte';
+  import Map from './lib/Map.svelte'
+  import Sidebar from './lib/Sidebar.svelte'
   
-  let viewsData = [];
-  let detailsLoading = true;
-  let abortController;
 
-  let selectedTab = 1;
+  let dataLoading = true;
+  let currentIndicator;
+  let dataDict = {};
 
-  let selectedCountry = 'SSD';
-
-  const base_url = 'https://hapi.humdata.org/api/v1/';
-  const app_indentifier = 'aGFwaS1kYXNoYm9hcmQ6ZXJpa2Eud2VpQHVuLm9yZw==';
-  const rateDelay = 0;
-
-  const countries = [
-    { code: 'SSD', name: 'South Sudan' }
+  const layers = [
+    {name: 'People in Need', id: 'pin'},
+    {name: 'Needs Severity', id: 'severity'}
   ];
+
+  const pin_data_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR86p0qWe2rXg2UL93HaUUQP6M2CZ1ntBY-4dOxlRfJ-_xtAUuUkp2g96dzuuRGaA/pub?gid=102330867&single=true&output=csv';
+  
+  const severity_data_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR86p0qWe2rXg2UL93HaUUQP6M2CZ1ntBY-4dOxlRfJ-_xtAUuUkp2g96dzuuRGaA/pub?gid=142433636&single=true&output=csv';
 
   const views = [
     {name: 'Operational Presence', id: 'orgs', endpoint: `coordination-context/operational-presence?sector_code=WSH&admin_level=2`},
     {name: 'Humanitarian Needs', id: 'hno', endpoint: `affected-people/humanitarian-needs?sector_code=WSH&population_status=INN&admin_level=2`},
   ];
 
-  async function fetchData(endpoint) {
-    try {
-      const response = await fetch(`${endpoint}&app_identifier=${app_indentifier}`, { signal: abortController.signal });
-      const text = await response.text();
-      return new Promise((resolve, reject) => {
-        Papa.parse(text, {
-          header: true,
-          complete: results => resolve(results.data),
-          error: err => reject(err)
-        });
+
+  Promise.all([loadCSV(pin_data_url), loadCSV(severity_data_url)])
+    .then(([pin, severity]) => {
+      dataDict["pin"] = cleanData(pin);
+      dataDict["severity"] = cleanData(severity);
+
+      dataLoaded();
+    })
+    .catch(error => {
+      console.error('Error loading files:', error);
+    });
+
+  function cleanData(data) {
+    const cleaned = data.map(obj =>
+      Object.fromEntries(
+        Object.entries(obj).map(([key, value]) => {
+          // Trim extra spaces and remove any leading/trailing double quotes
+          const newKey = key.trim().replace(/^"+|"+$/g, '');
+          return [newKey, value];
+        })
+      )
+    );
+    return cleaned;
+  }
+
+  function loadCSV(filePath) {
+    return new Promise((resolve, reject) => {
+      Papa.parse(filePath, {
+        download: true,
+        header: true,
+        complete: function(results) {
+          resolve(results.data);
+        },
+        error: function(error) {
+          reject(error);
+        }
       });
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('Fetch aborted');
-      } else {
-        throw error;
-      }
-    }
+    });
   }
 
-  async function fetchDataWithRateLimit(endpoint, delay) {
-    await new Promise(resolve => setTimeout(resolve, delay));
-    return fetchData(endpoint);
+  function dataLoaded() {
+    dataLoading = false;
+
+    const countries = new Set(dataDict.pin.map(row => row["Admin 0"]));
+    console.log(countries)
   }
 
-  function generateMetadataEndpoint(hdx_id) {
-    return `${base_url}metadata/resource?resource_hdx_id=${hdx_id}&output_format=csv&limit=100`;
+  function onLayerSelect(event) {
+    const layerID = event.detail.message
+    currentIndicator = layers[layerID].id;
+    console.log('currentIndicator:', currentIndicator);
   }
-
-  async function loadViewsData() {
-    viewsData = [];
-    let delay = 0;
-    for (let view of views) {
-      let data = [];
-      let offset = 0;
-      let fetchedData;
-      let endpoint = '';
-
-      //data pagination
-      do {
-        endpoint = `${base_url}${view.endpoint}&location_code=${selectedCountry}&offset=${offset}&output_format=csv&limit=10000`;
-        fetchedData = await fetchDataWithRateLimit(endpoint, delay);
-        data = data.concat(fetchedData);
-        offset += 10000;
-      } while (fetchedData.length >= 10000);
-
-      //if no data
-      if (data.length === 0) {
-        viewsData = [...viewsData, { id: view.id, data: null, metadata: null }];
-        continue;
-      }
-
-      //get metadata
-      const metadataEndpoint = generateMetadataEndpoint(data[0].resource_hdx_id);
-      const metadata = await fetchDataWithRateLimit(metadataEndpoint, delay + 100);
-
-      //console.log('---view endpoint', endpoint)
-      viewsData = [...viewsData, { id: view.id, data, metadata, endpoint }];
-
-      delay += rateDelay;
-    }
-  }
-
-
-  function selectTab(index) {
-    selectedTab = index;
-  }
-
-  async function loadData() {
-    await loadViewsData();
-    detailsLoading = false;
-  }  
-
 
   function initTracking() {
     //initialize mixpanel
-    var MIXPANEL_TOKEN = window.location.hostname=='ocha-dap.github.io'? '5cbf12bc9984628fb2c55a49daf32e74' : '99035923ee0a67880e6c05ab92b6cbc0';
+    var MIXPANEL_TOKEN = window.location.hostname=='data.humdata.org'? '5cbf12bc9984628fb2c55a49daf32e74' : '99035923ee0a67880e6c05ab92b6cbc0';
     mixpanel.init(MIXPANEL_TOKEN);
     mixpanel.track('page view', {
       'page title': document.title,
@@ -112,27 +88,30 @@
   }
 
   onMount(async () => {
-    abortController = new AbortController();
-    loadData();
-    initTracking();
+    currentIndicator = 'pin';
+    //initTracking();
   });
 </script>
 
 
 <main>
-  <header>
-    <a href='https://hdx-hapi.readthedocs.io/en/latest/' target='_blank'><img src='logo_hdx_hapi.png' alt='HDX HAPI' /></a>
+<!--   <header>
   </header>
   
-  <h2 class='header'><strong>South Sudan:</strong> People in Need in Water Sanitation Hygiene Sector</h2>
-
-  <div class='tab-content'>
-    {#if detailsLoading}
-      <p class='no-data-msg'>Loading...</p>
-    {:else}
-      <HNOView {...viewsData[1]} orgData={viewsData[0].data} iso3={selectedCountry} />
-    {/if}
+  <h2 class='header'></h2> -->
+  <div class='grid-container'>
+    <div class='panel-content col-2'>
+      <Sidebar on:customEvent={onLayerSelect} layers={layers} />
+    </div>
+    <div class='main-content col-10'>
+      {#if dataLoading}
+        <p class='no-data-msg'>Loading...</p>
+      {:else}
+        <Map mapData={dataDict} indicator={currentIndicator} />
+      {/if}
+    </div>
   </div>
+
 </main>
 
 
@@ -149,18 +128,6 @@
   header p {
     margin-top: 0;
     width: 60%;
-  }
-  h2.details {
-    margin-top: 5px;
-  }
-  .main-content  {
-    margin: 0;
-  }
-  select {
-    font-size: 20px;
-  }
-  .tab-content {
-    min-height: 621px;
   }
 
   @media (max-width: 768px) {

@@ -4,7 +4,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/hdx-hapi-sudan/',
+  base: '/viz-jiaf/',
   plugins: [
     svelte()
   ],

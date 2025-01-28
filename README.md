@@ -1,3 +1,3 @@
 # Overview
 
-This dashboard was created to demonstrate the [HDX Humanitarian API](https://hdx-hapi.readthedocs.io/en/latest/) by showing a selection of key figures, charts and maps generated from data provided by the API.
+This dashboard was created to show People in Need and Need Severity Level data in HRP countries
