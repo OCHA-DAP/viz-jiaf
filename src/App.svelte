@@ -15,20 +15,16 @@
     {name: 'Needs Severity', id: 'severity'}
   ];
 
-  const pin_data_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR86p0qWe2rXg2UL93HaUUQP6M2CZ1ntBY-4dOxlRfJ-_xtAUuUkp2g96dzuuRGaA/pub?gid=102330867&single=true&output=csv';
+  const pin_data_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR86p0qWe2rXg2UL93HaUUQP6M2CZ1ntBY-4dOxlRfJ-_xtAUuUkp2g96dzuuRGaA/pub?gid=1614078524&single=true&output=csv';
   
-  const severity_data_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR86p0qWe2rXg2UL93HaUUQP6M2CZ1ntBY-4dOxlRfJ-_xtAUuUkp2g96dzuuRGaA/pub?gid=142433636&single=true&output=csv';
-
-  const views = [
-    {name: 'Operational Presence', id: 'orgs', endpoint: `coordination-context/operational-presence?sector_code=WSH&admin_level=2`},
-    {name: 'Humanitarian Needs', id: 'hno', endpoint: `affected-people/humanitarian-needs?sector_code=WSH&population_status=INN&admin_level=2`},
-  ];
+  const severity_data_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR86p0qWe2rXg2UL93HaUUQP6M2CZ1ntBY-4dOxlRfJ-_xtAUuUkp2g96dzuuRGaA/pub?gid=646087587&single=true&output=csv';
 
 
   Promise.all([loadCSV(pin_data_url), loadCSV(severity_data_url)])
     .then(([pin, severity]) => {
-      dataDict["pin"] = cleanData(pin);
-      dataDict["severity"] = cleanData(severity);
+      dataDict['pin'] = cleanData(pin);
+      dataDict['severity'] = cleanData(severity);
+
 
       dataLoaded();
     })
@@ -37,16 +33,20 @@
     });
 
   function cleanData(data) {
-    const cleaned = data.map(obj =>
+    return data.map(obj =>
       Object.fromEntries(
         Object.entries(obj).map(([key, value]) => {
-          // Trim extra spaces and remove any leading/trailing double quotes
-          const newKey = key.trim().replace(/^"+|"+$/g, '');
-          return [newKey, value];
+          // Clean the key.
+          const cleanedKey = key.trim().replace(/^"+|"+$/g, '');
+          // Clean the value if it's a string.
+          let cleanedValue = value;
+          if (typeof value === 'string') {
+            cleanedValue = value.trim().replace(/^"+|"+$/g, '');
+          }
+          return [cleanedKey, cleanedValue];
         })
       )
     );
-    return cleaned;
   }
 
   function loadCSV(filePath) {

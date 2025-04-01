@@ -13,26 +13,26 @@
   mapboxgl.accessToken = 'cacheToken';
 
   const countries = [
-    { name: 'Afghanistan', url: 'geojson/afg-adm2.geojson' },
-    { name: 'Burkina Faso', url: 'geojson/bfa-adm2.geojson' },
-    { name: 'Central African Republic', url: 'geojson/caf-adm2.geojson' },
-    { name: 'Chad', url: 'geojson/tcd-adm2.geojson' },
-    //{ name: 'Colombia', url: 'geojson/col-adm2.geojson' },
-    { name: 'Democratic Republic of the Congo', url: 'geojson/cod-adm2.geojson' },
-    { name: 'El Salvador', url: 'geojson/slv-adm2.geojson' },
-    { name: 'Guatemala', url: 'geojson/gtm-adm2.geojson' },
-    { name: 'Haiti', url: 'geojson/hti-adm2.geojson' },
-    { name: 'Honduras', url: 'geojson/hnd-adm2.geojson' },
-    { name: 'Mali', url: 'geojson/mli-adm2.geojson' },
-    { name: 'Mozambique', url: 'geojson/moz-adm2.geojson' },
-    { name: 'Myanmar', url: 'geojson/mmr-adm2.geojson' },
-    { name: 'Somalia', url: 'geojson/som-adm2.geojson' },
-    { name: 'South Sudan', url: 'geojson/ssd-adm2.geojson' },
-    { name: 'Sudan', url: 'geojson/sdn-adm2.geojson' },
-    { name: 'Syria', url: 'geojson/syr-adm2.geojson' },
-    { name: 'Ukraine', url: 'geojson/ukr-adm2.geojson' },
-    { name: 'Venezuela', url: 'geojson/ven-adm2.geojson' },
-    { name: 'Yemen', url: 'geojson/yem-adm2.geojson' }
+    { name: 'Afghanistan', code: 'AFG', url: 'geojson/adm2/afg-adm2.geojson' },
+    { name: 'Burkina Faso', code: 'BFA', url: 'geojson/adm3/bfa-adm3.geojson' },
+    { name: 'Central African Republic', code: 'CAF', url: 'geojson/adm2/caf-adm2.geojson' },
+    { name: 'Chad', code: 'TCD', url: 'geojson/adm2/tcd-adm2.geojson' },
+    //{ name: 'Colombia', code: 'COL', url: 'geojson/adm2/col-adm2.geojson' },
+    { name: 'Democratic Republic of the Congo', code: 'COD', url: 'geojson/adm2/cod-adm2.geojson' },
+    { name: 'El Salvador', code: 'SLV', url: 'geojson/adm2/slv-adm2.geojson' },
+    { name: 'Guatemala', code: 'GTM', url: 'geojson/adm2/gtm-adm2.geojson' },
+    { name: 'Haiti', code: 'HTI', url: 'geojson/adm2/hti-adm2.geojson' },
+    { name: 'Honduras', code: 'HND', url: 'geojson/adm2/hnd-adm2.geojson' },
+    { name: 'Mali', code: 'MLI', url: 'geojson/adm2/mli-adm2.geojson' },
+    { name: 'Mozambique', code: 'MOZ', url: 'geojson/adm2/moz-adm2.geojson' },
+    { name: 'Myanmar', code: 'MMR', url: 'geojson/adm3/mmr-adm3.geojson' },
+    { name: 'Somalia', code: 'SOM', url: 'geojson/adm2/som-adm2.geojson' },
+    { name: 'South Sudan', code: 'SSD', url: 'geojson/adm2/ssd-adm2.geojson' },
+    { name: 'Sudan', code: 'SDN', url: 'geojson/adm2/sdn-adm2.geojson' },
+    { name: 'Syria', code: 'SYR', url: 'geojson/adm3/syr-adm3.geojson' },
+    { name: 'Ukraine', code: 'UKR', url: 'geojson/adm2/ukr-adm2.geojson' },
+    { name: 'Venezuela', code: 'VEN', url: 'geojson/adm2/ven-adm2.geojson' },
+    { name: 'Yemen', code: 'YEM', url: 'geojson/adm2/yem-adm2.geojson' }
   ]
 
   const colorRanges = {
@@ -40,23 +40,21 @@
     severity: ['#ea9800', '#e57146', '#c35c65', '#8f556d', '#5c4d5c']
   };
 
-  let map;
-  let combinedGeojson; 
-  let currentFeatures;
-  let colorScale;
-  let mapLegend;
-  let pinValues = [];
-  let tooltip = d3.select('.tooltip');
-  let numFormat = d3.format(',');
-  let shortFormat = d3.format('.2s');
+  let indicatorValues = {
+    pin: [],
+    severity: [1, 2, 3, 4, 5]
+  };
 
-  // If the indicator parameter changes and the map is loaded,
-  // update the fill-color paint property for the layer.
-  $: if (map && map.getLayer("indicator-layer") && indicator) {
-    //updateFeatureColors();
-    map.setPaintProperty("indicator-layer", "fill-color", getFillColorExpression(indicator));
+  let map, combinedGeojson, currentFeatures, mapLegend;
+  let tooltip;
+  const numFormat = d3.format(',');
+  const shortFormat = d3.format('.2s');
+  const DEFAULT_COLOR = '#CCC';
+  const INDICATOR_LAYER = 'indicator-layer';
 
-    // update legend
+  // Reactive update: When indicator changes and the map is loaded, update the layer and legend
+  $: if (map && map.getLayer(INDICATOR_LAYER) && indicator) {
+    map.setPaintProperty(INDICATOR_LAYER, 'fill-color', getFillColorExpression(indicator));
     d3.select('.legend-body').selectAll('*').remove();
     createMapLegend();
   }
@@ -67,108 +65,103 @@
     return userAgentCheck || screenSizeCheck;
   }
 
-  // This function returns a Mapbox fill-color expression based on the indicator.
+  // Returns a Mapbox fill-color expression based on the indicator
   function getFillColorExpression(indicator) {
-    if (indicator === "severity") {
+    if (indicator === 'severity') {
       // Build map expression for severity layer
       const ordinalScale = d3.scaleOrdinal()
-        .domain([1, 2, 3, 4, 5])
+        .domain(indicatorValues.severity)
         .range(colorRanges.severity);
 
-      let expr = ["match", ["get", "severity"]];
-      [1, 2, 3, 4, 5].forEach(val => {
+      const expr = ['match', ['get', 'severity']];
+      indicatorValues.severity.forEach(val => {
         expr.push(val, ordinalScale(val));
       });
+      
       // Fallback color if no match is found
-      expr.push("#CCC");
+      expr.push(DEFAULT_COLOR); 
       return expr;
-    } else {
+    } 
+    else {
       // Build map expression for PiN layer
       const quantileScale = d3.scaleQuantile()
-        .domain(pinValues)
+        .domain(indicatorValues.pin)
         .range(colorRanges.pin);
 
       const thresholds = quantileScale.quantiles();
-      let expr = ["step", ["get", "pin"], quantileScale.range()[0]];
+      const stepExpr = ['step', ['get', 'pin'], quantileScale.range()[0]];
       thresholds.forEach((threshold, i) => {
-        expr.push(threshold, quantileScale.range()[i + 1]);
+        stepExpr.push(threshold, quantileScale.range()[i + 1]);
       });
 
-      // Handle empty string values.
+      // Fallback color for empty string values
       return [
         "case",
         ["==", ["get", "pin"], ""],
-        "#CCC",
-        expr
+        DEFAULT_COLOR,
+        stepExpr
       ];
     }
   }
 
-  function dataLookup(indicator) {
-    const csvLookup = {};
-    mapData[indicator].forEach(record => {
-      let val = (indicator==='pin') ? record["Final PiN"] : record["Final Severity"];
-      val = (val === '') ? 0 : convertToNum(val);
-      csvLookup[record["Admin 2 P-Code"]] = record;
+  // Build a lookup table from the CSV data for a given indicator
+  function dataLookup(indicatorKey) {
+    const lookup = {};
+    (mapData[indicatorKey] || []).forEach(record => {
+      const code = record['Admin 3 P-Code'] || record['Admin 2 P-Code'];
+      lookup[code] = record;
     });
-    return csvLookup;
+    return lookup;
   }
 
   // Fetch and combine all GeoJSON files into one FeatureCollection.
   async function fetchAndCombineData() {
-    const fetchPromises = countries.map(file =>
-      fetch(file.url).then(response => response.json())
-    );
-    const geojsons = await Promise.all(fetchPromises);
+    // Get unique pin values
+    indicatorValues.pin = [...new Set(mapData.pin.map(row => convertToNum(row['Final PiN'])))];
 
-    // Combine features from all files
+    // Fetch geojson data
+    const geojsons = await Promise.all(
+      countries.map(({ url }) => fetch(url).then(res => res.json()))
+    );
+
+    // Combine features from all geojsons
     let combinedFeatures = geojsons.reduce((features, geojson) => {
-      if (geojson && geojson.features) {
-        return features.concat(geojson.features);
-      }
-      return features;
+      return geojson && geojson.features ? features.concat(geojson.features) : features;
     }, []);
 
-    const csvLookup = {};
-    const values = []
-    mapData[indicator].forEach(record => {
-      let val = (indicator==='pin') ? record["Final PiN"] : record["Final Severity"];
-      val = (val === '') ? 0 : convertToNum(val) 
-      values.push(val);
+    // Create CSV lookups 
+    const pinLookup = dataLookup('pin');
+    const severityLookup = dataLookup('severity');
 
-      //test 
-      if (indicator==='pin') pinValues = values;
+    // Get color scale to assign color to features
+    const colorScale = getColorScale(indicator);
 
-      csvLookup[record["Admin 2 P-Code"]] = record;
-    });
-
-    colorScale = d3.scaleQuantile()
-      .domain(values)
-      .range(colorRanges[indicator]);
-
-    // Merge CSV data into GeoJSON features.
+    // Merge CSV data into GeoJSON features
     combinedFeatures = combinedFeatures.map(feature => {
-      const code = feature.properties.adm2_pcode;
-      if (csvLookup[code]) {
-        // Add new attributes "pin" and "severity" from the CSV.
-        let pinVal = convertToNum(csvLookup[code]["Final PiN"]);
-        let severityVal = convertToNum(dataLookup('severity')[code]["Final Severity"]);
+      const code = feature.properties.adm3_pcode || feature.properties.adm2_pcode;
+      const csvRecord = pinLookup[code];
+
+      if (csvRecord) {
+        const pinVal = convertToNum(csvRecord['Final PiN']);
+        const severityVal = severityLookup[code]
+          ? convertToNum(severityLookup[code]['Final Severity'])
+          : '';
         feature.properties.pin = pinVal;
         feature.properties.severity = severityVal;
-        feature.properties.population = convertToNum(csvLookup[code]["Population"]);
-        feature.properties.color = (pinVal === '') ? '#CCC' : colorScale(pinVal);
+        feature.properties.population = convertToNum(csvRecord['Population']);
+        feature.properties.color = pinVal === '' ? DEFAULT_COLOR : colorScale(pinVal);
       }
       else {
         feature.properties.pin = '';
         feature.properties.severity = '';
-        feature.properties.color = '#CCC';
+        feature.properties.color = DEFAULT_COLOR;
       }
       return feature;
     });
 
     // Create a combined FeatureCollection
     combinedGeojson = {
-      type: "FeatureCollection",
+      type: 'FeatureCollection',
       features: combinedFeatures
     };
 
@@ -179,7 +172,7 @@
   // Initialize the map and add the combined GeoJSON source/layer
   async function initializeMap() {
     map = new mapboxgl.Map({
-      container: "map",
+      container: 'map',
       style: 'mapbox://styles/humdata/cl3lpk27k001k15msafr9714b',
       center: [0, 20],
       zoom: 2
@@ -194,13 +187,13 @@
       className: 'map-tooltip'
     });
 
-    map.on("load", async () => {
+    map.on('load', async () => {
       //map.setPaintProperty('background', 'background-color', '#B7E4EF');
       const data = await fetchAndCombineData();
 
-      // Add the combined GeoJSON as a single source.
-      map.addSource("combined-geojson", {
-        type: "geojson",
+      // Add the combined GeoJSON as a source
+      map.addSource('combined-geojson', {
+        type: 'geojson',
         data: data
       });
 
@@ -208,13 +201,13 @@
 
       // Add a layer that uses a data-driven style for the fill color.
       map.addLayer({
-        id: "indicator-layer",
-        type: "fill",
-        source: "combined-geojson",
+        id: INDICATOR_LAYER,
+        type: 'fill',
+        source: 'combined-geojson',
         layout: {},
         paint: {
-          "fill-color": getFillColorExpression(indicator),
-          "fill-outline-color": "#FFF"
+          'fill-color': getFillColorExpression(indicator),
+          'fill-outline-color': '#FFF'
         }
       }, 'Countries 2-4');
 
@@ -224,45 +217,57 @@
     });
   }
 
+  // Convert string to number
   function convertToNum(str) {
-    if (str=='' || str==undefined)
-      return 0
-    else
-      return Number(str.replace(/,/g, ''));
+    return str ? Number(str.replace(/,/g, "")) : 0;
   }
 
-  function createMapLegend() {
-    const legendTitle = (indicator=='pin') ? 'Number of People in Need' : 'Needs Severity Level';
-    d3.select('.legend-title').text(legendTitle);
-
-    const svg = d3.select(mapLegend);
-
-    let colorRange = colorRanges[indicator];
+  // Return the appropriate D3 color scale based on the indicator
+  function getColorScale(indicatorKey) {
+    const colorRange = colorRanges[indicatorKey];
     let colorScale;
-    if (indicator=='severity') {
+    if (indicatorKey=='severity') {
       colorScale = d3.scaleOrdinal()
-        .domain([1, 2, 3, 4, 5])
+        .domain(indicatorValues.severity)
         .range(colorRange);
     }
     else {
       colorScale = d3.scaleQuantile()
-        .domain(pinValues)
+        .domain(indicatorValues.pin)
         .range(colorRange);
     }
+    return colorScale;
+  }
 
+  function createMapLegend() {
+    const legendTitle = (indicator==='pin') ? 'Number of People in Need' : 'Needs Severity Level';
+    d3.select('.legend-title').text(legendTitle);
+
+    const colorScale = getColorScale(indicator);
+    const svg = d3.select(mapLegend);
     const colorLegend = legendColor()
       .labelFormat(d3.format('.2s'))
       .scale(colorScale);
-
      d3.select('.legend-body').call(colorLegend);
 
-    //no data key
+    // Append no data key
     svg.selectAll('.no-data-key').remove();
     const nodata = svg.append('svg').attr('class', 'no-data-key');
     nodata.append('rect').attr('width', 15).attr('height', 15);
     nodata.append('text').attr('class', 'label').text('No Data');
   }
 
+  function selectRegion() {
+    var regionFeature = regionBoundaryData.filter(d => d.properties.tbl_regcov_2020_ocha_Field3 == currentRegion);
+    var offset = 20;
+    map.fitBounds(regionFeature[0].bbox, {
+      padding: offset,
+      linear: true
+    });
+
+    // vizTrack(currentRegion, currentIndicator.name);
+    // updateGlobalLayer();
+  }
 
   function zoomToBounds() {
     //zoom map to bounds
@@ -274,9 +279,9 @@
   }
 
   function attachMouseEvents() {
-    map.on('mouseenter', 'indicator-layer', onMouseEnter);
-    map.on('mouseleave', 'indicator-layer', onMouseLeave);
-    map.on('mousemove', 'indicator-layer', onMouseMove);
+    map.on('mouseenter', INDICATOR_LAYER, onMouseEnter);
+    map.on('mouseleave', INDICATOR_LAYER, onMouseLeave);
+    map.on('mousemove', INDICATOR_LAYER, onMouseMove);
   }
 
   //mouse event/leave events
@@ -292,17 +297,18 @@
 
   function onMouseMove(e) {
     const prop = e.features[0].properties;
-    let content = `<h2>${prop.adm2_name}, ${prop.adm0_name}</h2>`;
+    const adminName = prop.adm3_name || prop.adm2_name;
+    let content = `<h2>${adminName}, ${prop.adm0_name}</h2>`;
 
     if (prop[indicator] === '') {
       content += `<span>People in need:</span><div class="stat">No data</div>`;
     } 
     else {
       if (indicator=='pin') {
-        content += `<span>People in Need:</span><div class="stat">${prop.pin ? shortFormat(prop.pin) : 'No data'}</div>`;
+        content += `<span>People in Need:</span><div class="stat">${prop.pin !== '' ? shortFormat(prop.pin) : 'No data'}</div>`;
       }
       else {
-        content += `<span>Needs Severity:</span><div class="stat">${prop.severity ? prop.severity : 'No data'}</div>`;
+        content += `<span>Needs Severity:</span><div class="stat">${prop.severity !== '' ? prop.severity : 'No data'}</div>`;
       }
 
       content += `<br>Population: ${prop.population ? shortFormat(prop.population) : 'No data'}`;

@@ -6,6 +6,17 @@
 
   const dispatch = createEventDispatcher();
 
+  //regional id/name list
+  const regionalList = [
+    {id: 'HRPs', name: 'Humanitarian Response Plan Countries'},
+    {id: 'ROAP', name: 'Asia and the Pacific'},
+    {id: 'ROCCA', name: 'Eastern Europe'},
+    {id: 'ROLAC', name: 'Latin America and the Caribbean'},
+    {id: 'ROMENA', name: 'Middle East and North Africa'},
+    {id: 'ROSEA', name: 'Southern and Eastern Africa'},
+    {id: 'ROWCA', name: 'West and Central Africa'}
+  ];
+
   let selectedLayer = 0;
 
   function selectLayer(index) {
@@ -13,8 +24,31 @@
     dispatch('customEvent', { message: selectedLayer });
   }
 
- 	onMount(() => {
+  function createRegionSelect() {
+    // Select the element and clear its content
+    var select = d3.select('.region-select');
+    select.html('');
 
+    // Bind data and create options from regionalList
+    select.selectAll('option')
+      .data(regionalList)
+      .enter()
+      .append('option')
+        .text(function(d) { return d.name; })
+        .attr('value', function(d) { return d.id; });
+
+    // Insert the default option at the beginning
+    select.insert('option', ':first-child')
+      .attr('value', '')
+      .text('All Regions');
+
+    // Set the select's value to the default option value
+    select.property('value', select.select('option').node().value);
+  }
+
+
+ 	onMount(() => {
+    //createRegionSelect();
 	})
 </script>
 
