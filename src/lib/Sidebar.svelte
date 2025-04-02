@@ -4,11 +4,13 @@
 
   export let layers;
 
+  let selectedRegion = '';
+
   const dispatch = createEventDispatcher();
 
   //regional id/name list
   const regionalList = [
-    {id: 'HRPs', name: 'Humanitarian Response Plan Countries'},
+    {id: 'HRPs', name: 'All Regions'},
     {id: 'ROAP', name: 'Asia and the Pacific'},
     {id: 'ROCCA', name: 'Eastern Europe'},
     {id: 'ROLAC', name: 'Latin America and the Caribbean'},
@@ -21,12 +23,12 @@
 
   function selectLayer(index) {
     selectedLayer = index;
-    dispatch('customEvent', { message: selectedLayer });
+    dispatch('onLayerSelect', { message: selectedLayer });
   }
 
   function createRegionSelect() {
-    // Select the element and clear its content
-    var select = d3.select('.region-select');
+    // Clear select contents
+    const select = d3.select('.region-select');
     select.html('');
 
     // Bind data and create options from regionalList
@@ -37,27 +39,26 @@
         .text(function(d) { return d.name; })
         .attr('value', function(d) { return d.id; });
 
-    // Insert the default option at the beginning
-    select.insert('option', ':first-child')
-      .attr('value', '')
-      .text('All Regions');
-
     // Set the select's value to the default option value
     select.property('value', select.select('option').node().value);
   }
 
+  function onSelectRegion(event) {
+    selectedRegion = event.target.value;
+    dispatch('onRegionSelect', { message: selectedRegion });
+  }
 
  	onMount(() => {
-    //createRegionSelect();
+    createRegionSelect();
 	})
 </script>
 
 
 <h2>People in Need Dashboard</h2>
-<!-- <label for='regionSelect' class='visuallyhidden'>Select a region: </label>
-<select id='regionSelect' class='region-select'>
+<label for='regionSelect' class='visuallyhidden'>Select a region: </label>
+<select id='regionSelect' class='region-select' on:change={onSelectRegion}>
   <option value=''>All Regions</option>
-</select> -->
+</select>
 
 <ul class='menu'>
   {#each layers as {name, id}, index}

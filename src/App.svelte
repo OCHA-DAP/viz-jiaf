@@ -7,7 +7,7 @@
   
 
   let dataLoading = true;
-  let currentIndicator;
+  let currentIndicator, currentRegion;
   let dataDict = {};
 
   const layers = [
@@ -25,7 +25,6 @@
       dataDict['pin'] = cleanData(pin);
       dataDict['severity'] = cleanData(severity);
 
-
       dataLoaded();
     })
     .catch(error => {
@@ -36,9 +35,7 @@
     return data.map(obj =>
       Object.fromEntries(
         Object.entries(obj).map(([key, value]) => {
-          // Clean the key.
           const cleanedKey = key.trim().replace(/^"+|"+$/g, '');
-          // Clean the value if it's a string.
           let cleanedValue = value;
           if (typeof value === 'string') {
             cleanedValue = value.trim().replace(/^"+|"+$/g, '');
@@ -74,7 +71,10 @@
   function onLayerSelect(event) {
     const layerID = event.detail.message
     currentIndicator = layers[layerID].id;
-    console.log('currentIndicator:', currentIndicator);
+  }
+
+  function onRegionSelect(event) {
+    currentRegion = event.detail.message;
   }
 
   function initTracking() {
@@ -95,19 +95,16 @@
 
 
 <main>
-<!--   <header>
-  </header>
-  
-  <h2 class='header'></h2> -->
+
   <div class='grid-container'>
     <div class='panel-content col-2'>
-      <Sidebar on:customEvent={onLayerSelect} layers={layers} />
+      <Sidebar on:onLayerSelect={onLayerSelect} on:onRegionSelect={onRegionSelect} layers={layers} />
     </div>
     <div class='main-content col-10'>
       {#if dataLoading}
         <p class='no-data-msg'>Loading...</p>
       {:else}
-        <Map mapData={dataDict} indicator={currentIndicator} />
+        <Map mapData={dataDict} indicator={currentIndicator} region={currentRegion} />
       {/if}
     </div>
   </div>

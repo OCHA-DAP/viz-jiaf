@@ -8,6 +8,7 @@
 
   export let mapData = [];
   export let indicator;
+  export let region;
 
   mapboxgl.baseApiUrl = 'https://data.humdata.org/mapbox';
   mapboxgl.accessToken = 'cacheToken';
@@ -17,7 +18,7 @@
     { name: 'Burkina Faso', code: 'BFA', url: 'geojson/adm3/bfa-adm3.geojson' },
     { name: 'Central African Republic', code: 'CAF', url: 'geojson/adm2/caf-adm2.geojson' },
     { name: 'Chad', code: 'TCD', url: 'geojson/adm2/tcd-adm2.geojson' },
-    //{ name: 'Colombia', code: 'COL', url: 'geojson/adm2/col-adm2.geojson' },
+    { name: 'Colombia', code: 'COL', url: 'geojson/adm2/col-adm2.geojson' },
     { name: 'Democratic Republic of the Congo', code: 'COD', url: 'geojson/adm2/cod-adm2.geojson' },
     { name: 'El Salvador', code: 'SLV', url: 'geojson/adm2/slv-adm2.geojson' },
     { name: 'Guatemala', code: 'GTM', url: 'geojson/adm2/gtm-adm2.geojson' },
@@ -39,24 +40,28 @@
     pin: ['#ffcdb2', '#f2b8aa', '#e4989c', '#b87e8b', '#925b7a'],
     severity: ['#ea9800', '#e57146', '#c35c65', '#8f556d', '#5c4d5c']
   };
+  const numFormat = d3.format(',');
+  const shortFormat = d3.format('.2s');
+  const DEFAULT_COLOR = '#CCC';
+  const INDICATOR_LAYER = 'indicator-layer';
 
   let indicatorValues = {
     pin: [],
     severity: [1, 2, 3, 4, 5]
   };
 
-  let map, combinedGeojson, currentFeatures, mapLegend;
-  let tooltip;
-  const numFormat = d3.format(',');
-  const shortFormat = d3.format('.2s');
-  const DEFAULT_COLOR = '#CCC';
-  const INDICATOR_LAYER = 'indicator-layer';
+  let map, combinedGeojson, currentFeatures, mapLegend, regionBoundaryData, tooltip;
 
   // Reactive update: When indicator changes and the map is loaded, update the layer and legend
   $: if (map && map.getLayer(INDICATOR_LAYER) && indicator) {
     map.setPaintProperty(INDICATOR_LAYER, 'fill-color', getFillColorExpression(indicator));
     d3.select('.legend-body').selectAll('*').remove();
     createMapLegend();
+  }
+
+  $: if (map && region) {
+    console.log('Map: region', region)
+    selectRegion();
   }
 
   export const isMobile = () => {
@@ -215,6 +220,9 @@
       createMapLegend();
       zoomToBounds();
     });
+
+    // Get region boundary data
+    regionBoundaryData = await fetch('geojson/ocha-regions-bbox.geojson').then(res => res.json());
   }
 
   // Convert string to number
@@ -258,7 +266,7 @@
   }
 
   function selectRegion() {
-    var regionFeature = regionBoundaryData.filter(d => d.properties.tbl_regcov_2020_ocha_Field3 == currentRegion);
+    var regionFeature = regionBoundaryData.features.filter(d => d.properties.tbl_regcov_2020_ocha_Field3 == region);
     var offset = 20;
     map.fitBounds(regionFeature[0].bbox, {
       padding: offset,

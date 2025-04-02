@@ -193,6 +193,11 @@ select {
   padding: 0 20px;
   position: relative;
   width: 100%;
+
+  background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10"><polygon points="0,0 5,5 10,0" fill="%23333"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 0.5em center;
+  background-size: 0.7em;
 }
 
 // .content {
