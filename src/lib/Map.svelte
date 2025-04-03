@@ -55,17 +55,19 @@
 
   let map, combinedGeojson, currentFeatures, mapLegend, regionBoundaryData, tooltip;
 
-  // Reactive update: When indicator changes and the map is loaded, update the layer and legend
+  // Update the layer and legend when indicator changes
   $: if (map && map.getLayer(INDICATOR_LAYER) && indicator) {
     map.setPaintProperty(INDICATOR_LAYER, 'fill-color', getFillColorExpression(indicator));
     d3.select('.legend-body').selectAll('*').remove();
     createMapLegend();
   }
 
+  // Update region when selected region changes. TODO: update map features and scales  
   $: if (map && region) {
     selectRegion();
   }
 
+  // TODO: set up responsive view
   export const isMobile = () => {
     const userAgentCheck = /Mobi|Android/i.test(navigator.userAgent);
     const screenSizeCheck = window.matchMedia("(max-width: 767px)").matches;
@@ -114,7 +116,7 @@
     }
   }
 
-  // Build a lookup table from the CSV data for a given indicator
+  // Lookup helper that returns admin3 record if available, otherwise admin2
   function dataLookup() {
     const lookup = {};
     (mapData || []).forEach(record => {
@@ -126,7 +128,7 @@
 
   // Fetch and combine all GeoJSON files into one FeatureCollection.
   async function fetchAndCombineData() {
-    // Get unique pin values
+    // Get unique values for scale thresholds
     indicatorValues.pin = [...new Set(mapData.map(row => row['Final PiN']))];
     indicatorValues.pinPer = [...new Set(mapData.map(row => {
       let val = row['PiN_percentage'];
@@ -149,7 +151,7 @@
     // Get color scale to assign color to features
     const colorScale = getColorScale(indicator);
 
-    // Merge CSV data into GeoJSON features
+    // Merge data into GeoJSON features
     combinedFeatures = combinedFeatures.map(feature => {
       const code = feature.properties.adm3_pcode || feature.properties.adm2_pcode;
       const record = dataRecord[code];
@@ -207,7 +209,7 @@
       //map.setPaintProperty('background', 'background-color', '#B7E4EF');
       const data = await fetchAndCombineData();
 
-      // Add the combined GeoJSON as a source
+      // Add the combined GeoJSON source
       map.addSource('combined-geojson', {
         type: 'geojson',
         data: data
@@ -215,7 +217,7 @@
 
       currentFeatures = data;
 
-      // Add a layer that uses a data-driven style for the fill color.
+      // Create choropleth layer
       map.addLayer({
         id: INDICATOR_LAYER,
         type: 'fill',
@@ -236,7 +238,7 @@
     regionBoundaryData = await fetch('geojson/ocha-regions-bbox.geojson').then(res => res.json());
   }
 
-  // Return the appropriate D3 color scale based on the indicator
+  // Get color scale based on indicator
   function getColorScale(indicatorKey) {
     const colorRange = colorRanges[indicatorKey];
     let colorScale;
@@ -255,6 +257,7 @@
 
   function createMapLegend() {
     let legendTitle, legendFormat;
+    // TODO: create indicator object that is passed into map
     if (indicator==='pin') {
       legendFormat = shortFormat;
       legendTitle = 'Number of People in Need';
@@ -288,6 +291,7 @@
     nodata.append('text').attr('class', 'label').text('No Data');
   }
 
+  // Zoom into selected region. TODO: update features and scales with map extent
   function selectRegion() {
     var regionFeature = regionBoundaryData.features.filter(d => d.properties.tbl_regcov_2020_ocha_Field3 == region);
     var offset = 20;
@@ -295,9 +299,6 @@
       padding: offset,
       linear: true
     });
-
-    // vizTrack(currentRegion, currentIndicator.name);
-    // updateGlobalLayer();
   }
 
   function zoomToBounds() {
@@ -330,8 +331,6 @@
     const prop = e.features[0].properties;
     const adminName = prop.adm3_name || prop.adm2_name;
     let content = `<h2>${adminName}, ${prop.adm0_name}</h2>`;
-
-    if (adminName === 'Mueda') console.log(prop.pin)
 
     if (prop[indicator] === '') {
       content += `<div class="stat">No data</div>`;
