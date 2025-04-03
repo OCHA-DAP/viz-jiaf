@@ -19,7 +19,7 @@
     { name: 'Central African Republic', code: 'CAF', url: 'geojson/adm2/caf-adm2.geojson' },
     { name: 'Chad', code: 'TCD', url: 'geojson/adm2/tcd-adm2.geojson' },
     { name: 'Colombia', code: 'COL', url: 'geojson/adm2/col-adm2.geojson' },
-    { name: 'Democratic Republic of the Congo', code: 'COD', url: 'geojson/adm2/cod-adm2.geojson' },
+    { name: 'Democratic Republic of the Congo', code: 'COD', url: 'geojson/adm3/cod-adm3.geojson' },
     { name: 'El Salvador', code: 'SLV', url: 'geojson/adm2/slv-adm2.geojson' },
     { name: 'Guatemala', code: 'GTM', url: 'geojson/adm2/gtm-adm2.geojson' },
     { name: 'Haiti', code: 'HTI', url: 'geojson/adm2/hti-adm2.geojson' },
@@ -38,15 +38,18 @@
 
   const colorRanges = {
     pin: ['#ffcdb2', '#f2b8aa', '#e4989c', '#b87e8b', '#925b7a'],
+    pinPer: ['#ffcdb2', '#f2b8aa', '#e4989c', '#b87e8b', '#925b7a'],
     severity: ['#ea9800', '#e57146', '#c35c65', '#8f556d', '#5c4d5c']
   };
   const numFormat = d3.format(',');
   const shortFormat = d3.format('.2s');
+  const percentFormat = d3.format('.0%');
   const DEFAULT_COLOR = '#CCC';
   const INDICATOR_LAYER = 'indicator-layer';
 
   let indicatorValues = {
     pin: [],
+    pinPer: [],
     severity: [1, 2, 3, 4, 5]
   };
 
@@ -60,7 +63,6 @@
   }
 
   $: if (map && region) {
-    console.log('Map: region', region)
     selectRegion();
   }
 
@@ -90,11 +92,11 @@
     else {
       // Build map expression for PiN layer
       const quantileScale = d3.scaleQuantile()
-        .domain(indicatorValues.pin)
-        .range(colorRanges.pin);
+        .domain(indicatorValues[indicator])
+        .range(colorRanges[indicator]);
 
       const thresholds = quantileScale.quantiles();
-      const stepExpr = ['step', ['get', 'pin'], quantileScale.range()[0]];
+      const stepExpr = ['step', ['get', indicator], quantileScale.range()[0]];
       thresholds.forEach((threshold, i) => {
         stepExpr.push(threshold, quantileScale.range()[i + 1]);
       });
@@ -102,7 +104,10 @@
       // Fallback color for empty string values
       return [
         "case",
-        ["==", ["get", "pin"], ""],
+        ["any",
+          ["==", ["get", indicator], null],
+          ["==", ["get", indicator], ""]
+        ],
         DEFAULT_COLOR,
         stepExpr
       ];
@@ -110,9 +115,9 @@
   }
 
   // Build a lookup table from the CSV data for a given indicator
-  function dataLookup(indicatorKey) {
+  function dataLookup() {
     const lookup = {};
-    (mapData[indicatorKey] || []).forEach(record => {
+    (mapData || []).forEach(record => {
       const code = record['Admin 3 P-Code'] || record['Admin 2 P-Code'];
       lookup[code] = record;
     });
@@ -122,7 +127,11 @@
   // Fetch and combine all GeoJSON files into one FeatureCollection.
   async function fetchAndCombineData() {
     // Get unique pin values
-    indicatorValues.pin = [...new Set(mapData.pin.map(row => convertToNum(row['Final PiN'])))];
+    indicatorValues.pin = [...new Set(mapData.map(row => row['Final PiN']))];
+    indicatorValues.pinPer = [...new Set(mapData.map(row => {
+      let val = row['PiN_percentage'];
+      return val > 1 ? 1 : row['PiN_percentage'];
+    }))];
 
     // Fetch geojson data
     const geojsons = await Promise.all(
@@ -134,9 +143,8 @@
       return geojson && geojson.features ? features.concat(geojson.features) : features;
     }, []);
 
-    // Create CSV lookups 
-    const pinLookup = dataLookup('pin');
-    const severityLookup = dataLookup('severity');
+    // Create data lookup
+    const dataRecord = dataLookup();
 
     // Get color scale to assign color to features
     const colorScale = getColorScale(indicator);
@@ -144,20 +152,23 @@
     // Merge CSV data into GeoJSON features
     combinedFeatures = combinedFeatures.map(feature => {
       const code = feature.properties.adm3_pcode || feature.properties.adm2_pcode;
-      const csvRecord = pinLookup[code];
+      const record = dataRecord[code];
 
-      if (csvRecord) {
-        const pinVal = convertToNum(csvRecord['Final PiN']);
-        const severityVal = severityLookup[code]
-          ? convertToNum(severityLookup[code]['Final Severity'])
+      if (record) {
+        const pinVal = record['Final PiN'];
+        const pinPerVal = record['PiN_percentage'];
+        const severityVal = record
+          ? record['Final Severity']
           : '';
         feature.properties.pin = pinVal;
+        feature.properties.pinPer = pinPerVal;
         feature.properties.severity = severityVal;
-        feature.properties.population = convertToNum(csvRecord['Population']);
-        feature.properties.color = pinVal === '' ? DEFAULT_COLOR : colorScale(pinVal);
+        feature.properties.population = record['Population'];
+        feature.properties.color = pinVal === null ? DEFAULT_COLOR : colorScale(pinVal);
       }
       else {
         feature.properties.pin = '';
+        feature.properties.pinPer = '';
         feature.properties.severity = '';
         feature.properties.color = DEFAULT_COLOR;
       }
@@ -179,8 +190,8 @@
     map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/humdata/cl3lpk27k001k15msafr9714b',
-      center: [0, 20],
-      zoom: 2
+      center: [0, 0],
+      zoom: 1
     });
 
     map.addControl(new mapboxgl.NavigationControl({showCompass: false}))
@@ -225,11 +236,6 @@
     regionBoundaryData = await fetch('geojson/ocha-regions-bbox.geojson').then(res => res.json());
   }
 
-  // Convert string to number
-  function convertToNum(str) {
-    return str ? Number(str.replace(/,/g, "")) : 0;
-  }
-
   // Return the appropriate D3 color scale based on the indicator
   function getColorScale(indicatorKey) {
     const colorRange = colorRanges[indicatorKey];
@@ -241,20 +247,37 @@
     }
     else {
       colorScale = d3.scaleQuantile()
-        .domain(indicatorValues.pin)
+        .domain(indicatorValues[indicatorKey])
         .range(colorRange);
     }
     return colorScale;
   }
 
   function createMapLegend() {
-    const legendTitle = (indicator==='pin') ? 'Number of People in Need' : 'Needs Severity Level';
+    let legendTitle, legendFormat;
+    if (indicator==='pin') {
+      legendFormat = shortFormat;
+      legendTitle = 'Number of People in Need';
+    }
+    else if (indicator==='pinPer') {
+      legendFormat = percentFormat;
+      legendTitle = 'Percentage of Population in Need';
+    }
+    else if (indicator==='severity') {
+      legendFormat = numFormat;
+      legendTitle = 'Needs Severity Level';
+    }
+    else {
+      legendFormat = numFormat;
+      legendTitle = 'Map Legend';
+    }
+
     d3.select('.legend-title').text(legendTitle);
 
     const colorScale = getColorScale(indicator);
     const svg = d3.select(mapLegend);
     const colorLegend = legendColor()
-      .labelFormat(d3.format('.2s'))
+      .labelFormat(legendFormat)
       .scale(colorScale);
      d3.select('.legend-body').call(colorLegend);
 
@@ -309,19 +332,22 @@
     let content = `<h2>${adminName}, ${prop.adm0_name}</h2>`;
 
     if (prop[indicator] === '') {
-      content += `<span>People in need:</span><div class="stat">No data</div>`;
+      content += `<div class="stat">No data</div>`;
     } 
     else {
       if (indicator=='pin') {
-        content += `<span>People in Need:</span><div class="stat">${prop.pin !== '' ? shortFormat(prop.pin) : 'No data'}</div>`;
+        content += `<span>People in Need:</span><div class="stat">${prop.pin !== '' && prop.pinPer !== undefined ? shortFormat(prop.pin) : 'No data'}</div>`;
       }
-      else {
+      else if (indicator=='pinPer') {
+        content += `<span>Percentage of People in Need:</span><div class="stat">${prop.pinPer !== '' && prop.pinPer !== null && prop.pinPer !== undefined ? percentFormat(prop.pinPer) : 'No data'}</div>`;
+        content += `<br>People in Need: ${prop.pin ? shortFormat(prop.pin) : 'No data'}`;
+      }
+      else if (indicator=='severity') {
         content += `<span>Needs Severity:</span><div class="stat">${prop.severity !== '' ? prop.severity : 'No data'}</div>`;
       }
+      else {}
 
       content += `<br>Population: ${prop.population ? shortFormat(prop.population) : 'No data'}`;
-
-      //content += `<hr><ul class="sector-list"><li><i class="${humIcons['Water Sanitation Hygiene']}"></i> WASH organizations present: ${prop.numOrgs}</li></ul>`;
     }
 
     tooltip.setHTML(content).addTo(map).setLngLat(e.lngLat);

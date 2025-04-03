@@ -9,62 +9,21 @@
   let dataLoading = true;
   let currentIndicator, currentRegion;
   let dataDict = {};
+  let data;
 
   const layers = [
     {name: 'People in Need', id: 'pin'},
+    // {name: 'Percentage of Populaton in Need', id: 'pinPer'},
     {name: 'Needs Severity', id: 'severity'}
   ];
 
-  const pin_data_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR86p0qWe2rXg2UL93HaUUQP6M2CZ1ntBY-4dOxlRfJ-_xtAUuUkp2g96dzuuRGaA/pub?gid=1614078524&single=true&output=csv';
-  
-  const severity_data_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR86p0qWe2rXg2UL93HaUUQP6M2CZ1ntBY-4dOxlRfJ-_xtAUuUkp2g96dzuuRGaA/pub?gid=646087587&single=true&output=csv';
+  const data_url = 'https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/output.json';
 
-
-  Promise.all([loadCSV(pin_data_url), loadCSV(severity_data_url)])
-    .then(([pin, severity]) => {
-      dataDict['pin'] = cleanData(pin);
-      dataDict['severity'] = cleanData(severity);
-
-      dataLoaded();
-    })
-    .catch(error => {
-      console.error('Error loading files:', error);
-    });
-
-  function cleanData(data) {
-    return data.map(obj =>
-      Object.fromEntries(
-        Object.entries(obj).map(([key, value]) => {
-          const cleanedKey = key.trim().replace(/^"+|"+$/g, '');
-          let cleanedValue = value;
-          if (typeof value === 'string') {
-            cleanedValue = value.trim().replace(/^"+|"+$/g, '');
-          }
-          return [cleanedKey, cleanedValue];
-        })
-      )
-    );
-  }
-
-  function loadCSV(filePath) {
-    return new Promise((resolve, reject) => {
-      Papa.parse(filePath, {
-        download: true,
-        header: true,
-        complete: function(results) {
-          resolve(results.data);
-        },
-        error: function(error) {
-          reject(error);
-        }
-      });
-    });
-  }
 
   function dataLoaded() {
     dataLoading = false;
 
-    const countries = new Set(dataDict.pin.map(row => row["Admin 0"]));
+    const countries = new Set(data.map(row => row["Admin 0"]));
     console.log(countries)
   }
 
@@ -88,7 +47,15 @@
   }
 
   onMount(async () => {
-    currentIndicator = 'pin';
+    Promise.all([
+      d3.json(data_url)
+    ]).then(function(result) {
+      data = result[0];
+
+      currentIndicator = 'pin';
+      dataLoaded();
+    });
+
     //initTracking();
   });
 </script>
@@ -104,7 +71,7 @@
       {#if dataLoading}
         <p class='no-data-msg'>Loading...</p>
       {:else}
-        <Map mapData={dataDict} indicator={currentIndicator} region={currentRegion} />
+        <Map mapData={data} indicator={currentIndicator} region={currentRegion} />
       {/if}
     </div>
   </div>
@@ -113,32 +80,4 @@
 
 
 <style lang='scss'>
-  header {
-    display: flex;
-    flex-flow: row;
-    margin-top: 20px;
-  }
-  header img {
-    height: 30px;
-    margin-right: 30px;
-  }
-  header p {
-    margin-top: 0;
-    width: 60%;
-  }
-
-  @media (max-width: 768px) {
-    header {
-      flex-flow: column;
-      img {
-        height: 20px;
-      }
-      p {
-        width: 100%;
-      }
-    }
-    .select-wrapper {
-      margin-left: 20px;
-    }
-  }
 </style>
