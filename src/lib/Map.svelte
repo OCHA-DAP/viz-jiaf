@@ -331,12 +331,14 @@
     const adminName = prop.adm3_name || prop.adm2_name;
     let content = `<h2>${adminName}, ${prop.adm0_name}</h2>`;
 
+    if (adminName === 'Mueda') console.log(prop.pin)
+
     if (prop[indicator] === '') {
       content += `<div class="stat">No data</div>`;
     } 
     else {
       if (indicator=='pin') {
-        content += `<span>People in Need:</span><div class="stat">${prop.pin !== '' && prop.pinPer !== undefined ? shortFormat(prop.pin) : 'No data'}</div>`;
+        content += `<span>People in Need:</span><div class="stat">${prop.pin !== '' && prop.pin !== undefined ? shortFormat(prop.pin) : 'No data'}</div>`;
       }
       else if (indicator=='pinPer') {
         content += `<span>Percentage of People in Need:</span><div class="stat">${prop.pinPer !== '' && prop.pinPer !== null && prop.pinPer !== undefined ? percentFormat(prop.pinPer) : 'No data'}</div>`;
