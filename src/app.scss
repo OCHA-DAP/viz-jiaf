@@ -95,6 +95,7 @@ hr {
   box-shadow: 0 0 8px rgba(0,0,0,.3);
   font: 700 16px 'Source Sans 3', sans-serif;;
   height: 48px;
+  margin-top: 20px;
   width: 100%;
 }
 
@@ -210,6 +211,16 @@ select {
 //     }
 //   }
 // }
+
+.logos {
+  bottom: 0;
+  padding: 20px 0;
+  position: absolute;
+  img {
+    margin-top: 12px;
+  }
+}
+
 .map {
   background-color: #EFEFEF;
   height: 500px;
@@ -257,6 +268,15 @@ select {
     text {
       transform: translate(25px, 12.5px);
     }
+  }
+}
+
+
+.stats-container {
+  display: flex;
+  flex-flow: row;
+  > div {
+    flex-grow: 1;
   }
 }
 

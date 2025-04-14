@@ -12,9 +12,9 @@
   let data;
 
   const layers = [
+    {name: 'Needs Severity', id: 'severity'},
     {name: 'People in Need', id: 'pin'},
     // {name: 'Percentage of Populaton in Need', id: 'pinPer'},
-    {name: 'Needs Severity', id: 'severity'}
   ];
 
   const data_url = 'https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/output.json';
@@ -52,7 +52,7 @@
     ]).then(function(result) {
       data = result[0];
 
-      currentIndicator = 'pin';
+      currentIndicator = 'severity';
       dataLoaded();
     });
 
@@ -80,4 +80,7 @@
 
 
 <style lang='scss'>
+  .panel-content {
+    position: relative;
+  }
 </style>

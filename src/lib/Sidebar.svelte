@@ -53,8 +53,16 @@
 	})
 </script>
 
+<div class='org-logo'>
+  <a href='https://www.unocha.org' target='_blank' rel='noopener'>
+    <img width='100' src='assets/logo-ocha-blue.png' alt='OCHA logo'>
+  </a>
+  <a href='https://data.humdata.org' target='_blank' rel='noopener'>
+    <img width='100' src='assets/logo-hdx.svg' alt='HDX logo'>
+  </a>
+</div>
 
-<h2>People in Need Dashboard</h2>
+<h2>Intersectoral Needs Severity Dashboard</h2>
 <label for='regionSelect' class='visuallyhidden'>Select a region: </label>
 <select id='regionSelect' class='region-select' on:change={onSelectRegion}>
   <option value=''>All Regions</option>
@@ -66,6 +74,15 @@
   {/each}
 </ul>
 
+<div class='logos'>
+  <a href='https://centre.humdata.org' target='_blank' rel='noopener'>
+    <img src='assets/logo-centre-gray.png' alt='Centre for Humanitarian Data logo'>
+  </a>
+  <a href='https://www.unocha.org' target='_blank' rel='noopener'>
+    <img src='assets/logo-ocha-gray.png' alt='Office for the Coordination of Humanitarian Affairs logo'>
+  </a>
+</div>
+
 <style lang='scss'>
   .menu li {
     cursor: pointer;
@@ -74,5 +91,12 @@
   .menu li.active {
     //background-color: #F1F1F1;
     color: #007ce0;
+  }
+  .org-logo {
+    display: flex;
+    margin-bottom: 30px;
+    a:first-child {
+      margin-right: 20px;
+    }
   }
 </style>

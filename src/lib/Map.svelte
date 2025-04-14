@@ -39,7 +39,7 @@
   const colorRanges = {
     pin: ['#ffcdb2', '#f2b8aa', '#e4989c', '#b87e8b', '#925b7a'],
     pinPer: ['#ffcdb2', '#f2b8aa', '#e4989c', '#b87e8b', '#925b7a'],
-    severity: ['#ea9800', '#e57146', '#c35c65', '#8f556d', '#5c4d5c']
+    severity: ['#BDCBDC', '#91ABC4', '#688DB0', '#46719B', '#2C5984']//['#ea9800', '#e57146', '#c35c65', '#8f556d', '#5c4d5c']
   };
   const numFormat = d3.format(',');
   const shortFormat = d3.format('.2s');
@@ -332,23 +332,28 @@
     const adminName = prop.adm3_name || prop.adm2_name;
     let content = `<h2>${adminName}, ${prop.adm0_name}</h2>`;
 
+    content += '<div class="stats-container">';
     if (prop[indicator] === '') {
       content += `<div class="stat">No data</div>`;
     } 
     else {
-      if (indicator=='pin') {
+      if (indicator=='severity') {
+        content += `<div><span>Needs Severity:</span><div class="stat">${prop.severity !== '' ? prop.severity : 'No data'}</div></div>`;
+      }
+      else if (indicator=='pin') {
         content += `<span>People in Need:</span><div class="stat">${prop.pin !== '' && prop.pin !== undefined ? shortFormat(prop.pin) : 'No data'}</div>`;
       }
       else if (indicator=='pinPer') {
         content += `<span>Percentage of People in Need:</span><div class="stat">${prop.pinPer !== '' && prop.pinPer !== null && prop.pinPer !== undefined ? percentFormat(prop.pinPer) : 'No data'}</div>`;
         content += `<br>People in Need: ${prop.pin ? shortFormat(prop.pin) : 'No data'}`;
       }
-      else if (indicator=='severity') {
-        content += `<span>Needs Severity:</span><div class="stat">${prop.severity !== '' ? prop.severity : 'No data'}</div>`;
-      }
       else {}
 
-      content += `<br>Population: ${prop.population ? shortFormat(prop.population) : 'No data'}`;
+      content += `<div><span>Population:</span><div class="stat">${prop.population ? shortFormat(prop.population) : 'No data'}</div></div>`;
+      content += '</div>';
+
+      if (prop.pinPer !== '' && prop.pinPer !== null && prop.pinPer !== undefined)
+        content += `<br>Percentage of People in Need: ${percentFormat(prop.pinPer)}`;
     }
 
     tooltip.setHTML(content).addTo(map).setLngLat(e.lngLat);
