@@ -58,7 +58,7 @@
     <img width='100' src='assets/logo-ocha-blue.png' alt='OCHA logo'>
   </a>
   <a href='https://data.humdata.org' target='_blank' rel='noopener'>
-    <img width='100' src='assets/logo-hdx.svg' alt='HDX logo'>
+    <img width='60' src='assets/logo-hdx-accr-blk.svg' alt='HDX logo'>
   </a>
 </div>
 
@@ -74,14 +74,14 @@
   {/each}
 </ul>
 
-<div class='logos'>
+<!-- <div class='logos'>
   <a href='https://centre.humdata.org' target='_blank' rel='noopener'>
     <img src='assets/logo-centre-gray.png' alt='Centre for Humanitarian Data logo'>
   </a>
   <a href='https://www.unocha.org' target='_blank' rel='noopener'>
     <img src='assets/logo-ocha-gray.png' alt='Office for the Coordination of Humanitarian Affairs logo'>
   </a>
-</div>
+</div> -->
 
 <style lang='scss'>
   .menu li {
@@ -93,6 +93,7 @@
     color: #007ce0;
   }
   .org-logo {
+    align-items: center;
     display: flex;
     margin-bottom: 30px;
     a:first-child {
