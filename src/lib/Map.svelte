@@ -27,6 +27,7 @@
     { name: 'Mali', code: 'MLI', url: 'geojson/adm2/mli-adm2.geojson' },
     { name: 'Mozambique', code: 'MOZ', url: 'geojson/adm2/moz-adm2.geojson' },
     { name: 'Myanmar', code: 'MMR', url: 'geojson/adm3/mmr-adm3.geojson' },
+    { name: 'Nigeria', code: 'NGA', url: 'geojson/adm2/nga-adm2.geojson' },
     { name: 'Somalia', code: 'SOM', url: 'geojson/adm2/som-adm2.geojson' },
     { name: 'South Sudan', code: 'SSD', url: 'geojson/adm2/ssd-adm2.geojson' },
     { name: 'Sudan', code: 'SDN', url: 'geojson/adm2/sdn-adm2.geojson' },
@@ -332,13 +333,15 @@
     const adminName = prop.adm3_name || prop.adm2_name;
     let content = `<h2>${adminName}, ${prop.adm0_name}</h2>`;
 
-    content += '<div class="stats-container">';
     if (prop[indicator] === '') {
       content += `<div class="stat">No data</div>`;
     } 
     else {
       if (indicator=='severity') {
+        content += '<div class="stats-container">';
         content += `<div><span>Needs Severity:</span><div class="stat">${prop.severity !== '' ? prop.severity : 'No data'}</div></div>`;
+        content += `<div><span>People in Need:</span><div class="stat">${prop.pin !== '' && prop.pin !== undefined ? shortFormat(prop.pin) : 'No data'}</div></div>`;
+        content += '</div>';
       }
       else if (indicator=='pin') {
         content += `<span>People in Need:</span><div class="stat">${prop.pin !== '' && prop.pin !== undefined ? shortFormat(prop.pin) : 'No data'}</div>`;
@@ -349,9 +352,7 @@
       }
       else {}
 
-      content += `<div><span>Population:</span><div class="stat">${prop.population ? shortFormat(prop.population) : 'No data'}</div></div>`;
-      content += '</div>';
-
+      content += `<br>Population: ${prop.population !== '' && prop.population !== null && prop.population !== undefined ? shortFormat(prop.population) : 'No data'}`;
       if (prop.pinPer !== '' && prop.pinPer !== null && prop.pinPer !== undefined)
         content += `<br>Percentage of People in Need: ${percentFormat(prop.pinPer)}`;
     }
