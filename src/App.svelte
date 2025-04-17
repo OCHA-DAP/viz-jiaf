@@ -13,7 +13,7 @@
 
   const layers = [
     {name: 'Needs Severity', id: 'severity'},
-    {name: 'People in Need', id: 'pin'},
+    //{name: 'People in Need', id: 'pin'},
     // {name: 'Percentage of Populaton in Need', id: 'pinPer'},
   ];
 

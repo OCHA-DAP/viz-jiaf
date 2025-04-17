@@ -8,34 +8,10 @@
 
   export let mapData = [];
   export let indicator;
-  export let region;
+  export let region = 'HRPs'; // Set default region
 
   mapboxgl.baseApiUrl = 'https://data.humdata.org/mapbox';
   mapboxgl.accessToken = 'cacheToken';
-
-  const countries = [
-    { name: 'Afghanistan', code: 'AFG', url: 'geojson/adm2/afg-adm2.geojson' },
-    { name: 'Burkina Faso', code: 'BFA', url: 'geojson/adm3/bfa-adm3.geojson' },
-    { name: 'Central African Republic', code: 'CAF', url: 'geojson/adm2/caf-adm2.geojson' },
-    { name: 'Chad', code: 'TCD', url: 'geojson/adm2/tcd-adm2.geojson' },
-    { name: 'Colombia', code: 'COL', url: 'geojson/adm2/col-adm2.geojson' },
-    { name: 'Democratic Republic of the Congo', code: 'COD', url: 'geojson/adm3/cod-adm3.geojson' },
-    { name: 'El Salvador', code: 'SLV', url: 'geojson/adm2/slv-adm2.geojson' },
-    { name: 'Guatemala', code: 'GTM', url: 'geojson/adm2/gtm-adm2.geojson' },
-    { name: 'Haiti', code: 'HTI', url: 'geojson/adm2/hti-adm2.geojson' },
-    { name: 'Honduras', code: 'HND', url: 'geojson/adm2/hnd-adm2.geojson' },
-    { name: 'Mali', code: 'MLI', url: 'geojson/adm2/mli-adm2.geojson' },
-    { name: 'Mozambique', code: 'MOZ', url: 'geojson/adm2/moz-adm2.geojson' },
-    { name: 'Myanmar', code: 'MMR', url: 'geojson/adm3/mmr-adm3.geojson' },
-    { name: 'Nigeria', code: 'NGA', url: 'geojson/adm2/nga-adm2.geojson' },
-    { name: 'Somalia', code: 'SOM', url: 'geojson/adm2/som-adm2.geojson' },
-    { name: 'South Sudan', code: 'SSD', url: 'geojson/adm2/ssd-adm2.geojson' },
-    { name: 'Sudan', code: 'SDN', url: 'geojson/adm2/sdn-adm2.geojson' },
-    { name: 'Syria', code: 'SYR', url: 'geojson/adm3/syr-adm3.geojson' },
-    { name: 'Ukraine', code: 'UKR', url: 'geojson/adm2/ukr-adm2.geojson' },
-    { name: 'Venezuela', code: 'VEN', url: 'geojson/adm2/ven-adm2.geojson' },
-    { name: 'Yemen', code: 'YEM', url: 'geojson/adm2/yem-adm2.geojson' }
-  ]
 
   const colorRanges = {
     pin: ['#ffcdb2', '#f2b8aa', '#e4989c', '#b87e8b', '#925b7a'],
@@ -47,6 +23,13 @@
   const percentFormat = d3.format('.0%');
   const DEFAULT_COLOR = '#CCC';
   const INDICATOR_LAYER = 'indicator-layer';
+  const GLOBAL_FILL_LAYER = 'global-fill';
+  const GLOBAL_LINE_LAYER = 'global-line';
+
+  const defaultFilter = ['!=', ['get', 'adm0_pcode'], 'NE']; // exclude Niger for now
+
+  let map, mapLegend, regionBoundaryData, tooltip;
+  let isLoaded = false;
 
   let indicatorValues = {
     pin: [],
@@ -54,13 +37,18 @@
     severity: [1, 2, 3, 4, 5]
   };
 
-  let map, combinedGeojson, currentFeatures, mapLegend, regionBoundaryData, tooltip;
+  indicatorValues.pin    = mapData
+    .map(r => r['Final PiN'])
+    .filter(v => v != null);
+  indicatorValues.pinPer = mapData
+    .map(r => Math.min(r['PiN_percentage'], 1))
+    .filter(v => v != null);
 
   // Update the layer and legend when indicator changes
   $: if (map && map.getLayer(INDICATOR_LAYER) && indicator) {
-    map.setPaintProperty(INDICATOR_LAYER, 'fill-color', getFillColorExpression(indicator));
-    d3.select('.legend-body').selectAll('*').remove();
-    createMapLegend();
+    // map.setPaintProperty(INDICATOR_LAYER, 'fill-color', getFillColorExpression(indicator));
+    // d3.select('.legend-body').selectAll('*').remove();
+    // createMapLegend();
   }
 
   // Update region when selected region changes. TODO: update map features and scales  
@@ -75,125 +63,17 @@
     return userAgentCheck || screenSizeCheck;
   }
 
-  // Returns a Mapbox fill-color expression based on the indicator
-  function getFillColorExpression(indicator) {
-    if (indicator === 'severity') {
-      // Build map expression for severity layer
-      const ordinalScale = d3.scaleOrdinal()
-        .domain(indicatorValues.severity)
-        .range(colorRanges.severity);
-
-      const expr = ['match', ['get', 'severity']];
-      indicatorValues.severity.forEach(val => {
-        expr.push(val, ordinalScale(val));
-      });
-      
-      // Fallback color if no match is found
-      expr.push(DEFAULT_COLOR); 
-      return expr;
-    } 
-    else {
-      // Build map expression for PiN layer
-      const quantileScale = d3.scaleQuantile()
-        .domain(indicatorValues[indicator])
-        .range(colorRanges[indicator]);
-
-      const thresholds = quantileScale.quantiles();
-      const stepExpr = ['step', ['get', indicator], quantileScale.range()[0]];
-      thresholds.forEach((threshold, i) => {
-        stepExpr.push(threshold, quantileScale.range()[i + 1]);
-      });
-
-      // Fallback color for empty string values
-      return [
-        "case",
-        ["any",
-          ["==", ["get", indicator], null],
-          ["==", ["get", indicator], ""]
-        ],
-        DEFAULT_COLOR,
-        stepExpr
-      ];
-    }
-  }
-
-  // Lookup helper that returns admin3 record if available, otherwise admin2
-  function dataLookup() {
-    const lookup = {};
-    (mapData || []).forEach(record => {
-      const code = record['Admin 3 P-Code'] || record['Admin 2 P-Code'];
-      lookup[code] = record;
-    });
-    return lookup;
-  }
-
-  // Fetch and combine all GeoJSON files into one FeatureCollection.
-  async function fetchAndCombineData() {
-    // Get unique values for scale thresholds
-    indicatorValues.pin = [...new Set(mapData.map(row => row['Final PiN']))];
-    indicatorValues.pinPer = [...new Set(mapData.map(row => {
-      let val = row['PiN_percentage'];
-      return val > 1 ? 1 : row['PiN_percentage'];
-    }))];
-
-    // Fetch geojson data
-    const geojsons = await Promise.all(
-      countries.map(({ url }) => fetch(url).then(res => res.json()))
-    );
-
-    // Combine features from all geojsons
-    let combinedFeatures = geojsons.reduce((features, geojson) => {
-      return geojson && geojson.features ? features.concat(geojson.features) : features;
-    }, []);
-
-    // Create data lookup
-    const dataRecord = dataLookup();
-
-    // Get color scale to assign color to features
-    const colorScale = getColorScale(indicator);
-
-    // Merge data into GeoJSON features
-    combinedFeatures = combinedFeatures.map(feature => {
-      const code = feature.properties.adm3_pcode || feature.properties.adm2_pcode;
-      const record = dataRecord[code];
-
-      if (record) {
-        const pinVal = record['Final PiN'];
-        const pinPerVal = record['PiN_percentage'];
-        const severityVal = record
-          ? record['Final Severity']
-          : '';
-        feature.properties.pin = pinVal;
-        feature.properties.pinPer = pinPerVal;
-        feature.properties.severity = severityVal;
-        feature.properties.population = record['Population'];
-        feature.properties.color = pinVal === null ? DEFAULT_COLOR : colorScale(pinVal);
-      }
-      else {
-        feature.properties.pin = '';
-        feature.properties.pinPer = '';
-        feature.properties.severity = '';
-        feature.properties.color = DEFAULT_COLOR;
-      }
-      return feature;
-    });
-
-    // Create a combined FeatureCollection
-    combinedGeojson = {
-      type: 'FeatureCollection',
-      features: combinedFeatures
-    };
-
-    return combinedGeojson;
-  }
-
-
-  // Initialize the map and add the combined GeoJSON source/layer
+  
+  // Initialize the map and add tileset layers
   async function initializeMap() {
+    const fillExpression = ["match", ["get", "country_code"]];
+
     map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/humdata/cl3lpk27k001k15msafr9714b',
       center: [0, 0],
+      minZoom: 1,
+      maxZoom: 12,
       zoom: 1
     });
 
@@ -207,37 +87,209 @@
     });
 
     map.on('load', async () => {
-      //map.setPaintProperty('background', 'background-color', '#B7E4EF');
-      const data = await fetchAndCombineData();
-
-      // Add the combined GeoJSON source
-      map.addSource('combined-geojson', {
-        type: 'geojson',
-        data: data
+      const zoomInBtn  = document.querySelector('.mapboxgl-ctrl-zoom-in');
+      const zoomOutBtn = document.querySelector('.mapboxgl-ctrl-zoom-out');
+      [zoomInBtn, zoomOutBtn].forEach(btn => {
+        btn.addEventListener('click', () => {
+          // wait for *this* zoom to finish, then run only once
+          map.once('zoomend', handleZoomFromControl);
+        });
       });
 
-      currentFeatures = data;
+      map.addSource('globalTileset', {
+        type: 'vector',
+        url: 'mapbox://humdata.bviogwzx'
+      });
 
-      // Create choropleth layer
+      // Add global fill layer 
+      map.addLayer({
+        id: GLOBAL_FILL_LAYER,
+        type: 'fill',  
+        source: 'globalTileset',
+        'source-layer': 'hrp22_polbnda_int_fieldmaps',
+        paint: {
+          'fill-color': '#fce0de',
+        }
+      }, 'Countries 2-4');
+
+      // Add global outline layer
+      map.addLayer({
+        id: GLOBAL_LINE_LAYER,
+        type: 'line',
+        source: 'globalTileset',
+        'source-layer': 'hrp22_polbnda_int_fieldmaps', 
+        paint: {
+          'line-color': '#888', 
+          'line-width': 1          
+        }
+      }, 'Countries 2-4');
+
+      // Country tileset
+      map.addSource('countryTileset', {
+        type: 'vector',
+        url: 'mapbox://humdata.bhueco0o',
+        promoteId: { 'hrp22_polbnda_subnational_fieldmaps': 'join_pcode' }
+      });
+
+      // Add country fill layer
       map.addLayer({
         id: INDICATOR_LAYER,
         type: 'fill',
-        source: 'combined-geojson',
-        layout: {},
+        source: 'countryTileset',
+        'source-layer': 'hrp22_polbnda_subnational_fieldmaps',
+        minzoom: 2,
+        layout: {
+          'visibility': 'none'
+        },
+        filter: defaultFilter,
         paint: {
           'fill-color': getFillColorExpression(indicator),
           'fill-outline-color': '#FFF'
         }
       }, 'Countries 2-4');
+      
 
       attachMouseEvents();
       createMapLegend();
-      zoomToBounds();
     });
+
+
+    map.on('sourcedata', (e) => {
+      if (e.sourceId === 'countryTileset' && e.isSourceLoaded) {
+        joinDataToFeatures();
+      }
+      if (e.sourceId === 'globalTileset' && e.isSourceLoaded) {
+        zoomToFeatures();
+      }
+    });
+
 
     // Get region boundary data
     regionBoundaryData = await fetch('geojson/ocha-regions-bbox.geojson').then(res => res.json());
   }
+
+  function handleZoomFromControl() {
+    const z = map.getZoom();
+    const visibility = z >= 4 ? 'none' : 'visible';
+
+    // toggle your layers
+    map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', visibility);
+    map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', visibility);
+    map.setLayoutProperty(INDICATOR_LAYER, 'visibility', z >= 4 ? 'visible' : 'none');
+
+    // reset the filter
+    map.setFilter(INDICATOR_LAYER, defaultFilter);
+  }
+
+
+  // Zoom to global features
+  function zoomToFeatures() {
+    const features = map.querySourceFeatures('globalTileset', {
+      sourceLayer: 'hrp22_polbnda_int_fieldmaps'
+    });
+    if (features.length===30) isLoaded = true; // debug
+
+    if (!isLoaded) {
+      if (!features.length) return;
+      const fc = turf.featureCollection(features);
+      const bbox = turf.bbox(fc);
+      map.fitBounds(
+        [
+          [bbox[0], bbox[1]],
+          [bbox[2], bbox[3]]
+        ],
+        {
+          padding: 20,
+          duration: 700
+        }
+      );
+    }
+  }
+
+
+  // Returns a Mapbox fill-color expression
+  function getFillColorExpression(indicator) {
+    if (indicator === 'severity') {
+      // Build map expression for severity layer
+      const ordinalScale = d3.scaleOrdinal()
+        .domain(indicatorValues.severity)
+        .range(colorRanges.severity);
+
+      const expr = ['match', ['feature-state', 'severity']];
+      indicatorValues.severity.forEach(val => {
+        expr.push(val, ordinalScale(val));
+      });
+      
+      // Fallback color if no match is found
+      expr.push(DEFAULT_COLOR); 
+      return expr;
+    } 
+    else {
+      // quantile thresholds (precomputed in indicatorValues[indicator])
+      const thresholds = d3.scaleQuantile()
+          .domain(indicatorValues[indicator])
+          .quantiles();
+
+      const stepExpr = ['step', ['feature-state', indicator], colorRanges[indicator][0]];
+      thresholds.forEach((t, i) => {
+        stepExpr.push(t, colorRanges[indicator][i + 1]);
+      });
+
+      return [
+        'case',
+          ['any',
+            ['==', ['feature-state', indicator], null],
+            ['==', ['feature-state', indicator], undefined]
+          ],
+          DEFAULT_COLOR,
+          stepExpr
+      ];
+    }
+  }
+
+
+  // Lookup helper that returns admin3 record if available, otherwise admin2
+  function dataLookup() {
+    const lookup = {};
+    (mapData || []).forEach(record => {
+      const code = record['Admin 3 P-Code'] || record['Admin 2 P-Code'];
+      lookup[code] = record;
+    });
+    return lookup;
+  }
+
+
+  // Join tabular data to map features
+  function joinDataToFeatures() {
+    const lookup = dataLookup();
+
+    // get the loaded features
+    const features = map.querySourceFeatures('countryTileset', {
+      sourceLayer: 'hrp22_polbnda_subnational_fieldmaps'
+    });
+
+    features.forEach(f => {
+      const pcode = f.properties.join_pcode;
+      const record = lookup[pcode];
+
+      map.setFeatureState(
+        { source: 'countryTileset', sourceLayer: 'hrp22_polbnda_subnational_fieldmaps', id: f.id },
+        {
+          pin:       record?.['Final PiN'] ?? null,
+          pinPer:    record ? Math.min(record['PiN_percentage'], 1) : null,
+          severity:  record?.['Final Severity'] ?? null,
+          population: record?.['Population'] ?? null
+        }
+      );
+    });
+
+    map.setPaintProperty(
+      INDICATOR_LAYER,
+      'fill-color',
+      getFillColorExpression(indicator)
+    );
+  }
+
 
   // Get color scale based on indicator
   function getColorScale(indicatorKey) {
@@ -256,6 +308,8 @@
     return colorScale;
   }
 
+
+  // Create map legend
   function createMapLegend() {
     let legendTitle, legendFormat;
     // TODO: create indicator object that is passed into map
@@ -292,32 +346,74 @@
     nodata.append('text').attr('class', 'label').text('No Data');
   }
 
+
   // Zoom into selected region. TODO: update features and scales with map extent
   function selectRegion() {
-    var regionFeature = regionBoundaryData.features.filter(d => d.properties.tbl_regcov_2020_ocha_Field3 == region);
-    var offset = 20;
+    if (regionBoundaryData===undefined) return;
+    let regionFeature = regionBoundaryData.features.filter(d => d.properties.tbl_regcov_2020_ocha_Field3 == region);
+    let offset = 20;
+
+    if (region==='HRPs') {      
+      map.once('moveend', () => {
+        map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'none');
+        map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'visible');
+        map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'visible');
+      });
+    }
+    else {
+      map.once('moveend', () => {
+        map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
+        map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
+        map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
+      });
+    }
+
     map.fitBounds(regionFeature[0].bbox, {
       padding: offset,
       linear: true
     });
   }
 
-  function zoomToBounds() {
-    //zoom map to bounds
-    const pad = isMobile() ? {top: 20, right: 20, bottom: 20, left: 20} : {top: 20, right: 20, bottom: 20, left: 20};
-    if (currentFeatures) {
-      const bbox = turf.bbox(currentFeatures);
-      map.fitBounds(bbox, {padding: pad, duration: 100});
-    }
-  }
-
+  // Mouse events for global and country layers
   function attachMouseEvents() {
+    // Add a click event listener to the country fill layer
+    map.on('click', GLOBAL_FILL_LAYER, (e) => {
+      const feature = e.features[0];
+      const bbox = turf.bbox(feature);
+
+      map.once('moveend', () => {
+        // Show features for selected country
+        map.setFilter(
+          INDICATOR_LAYER,
+          ['==', ['get', 'adm0_pcode'], feature.properties.adm0_pcode]
+        );
+        map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
+        map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
+        map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
+      });
+
+      map.fitBounds(bbox, {
+        padding: 100,      
+        duration: 700    
+      });
+
+    });
+
+    // Change cursor on hover to indicate interactivity
+    map.on('mouseenter', GLOBAL_FILL_LAYER, () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', GLOBAL_FILL_LAYER, () => {
+      map.getCanvas().style.cursor = '';
+    });
+
+
     map.on('mouseenter', INDICATOR_LAYER, onMouseEnter);
     map.on('mouseleave', INDICATOR_LAYER, onMouseLeave);
     map.on('mousemove', INDICATOR_LAYER, onMouseMove);
   }
 
-  //mouse event/leave events
+  
   function onMouseEnter(e) {
     map.getCanvas().style.cursor = 'pointer';
     tooltip.addTo(map);
@@ -329,35 +425,37 @@
   }
 
   function onMouseMove(e) {
-    const prop = e.features[0].properties;
-    const adminName = prop.adm3_name || prop.adm2_name;
-    let content = `<h2>${adminName}, ${prop.adm0_name}</h2>`;
+    const feature = e.features[0];
+    const id      = feature.id;
+    const state = map.getFeatureState({
+      source:      'countryTileset',
+      sourceLayer: 'hrp22_polbnda_subnational_fieldmaps',
+      id
+    });
 
-    if (prop[indicator] === '') {
+    const adminName = feature.properties.adm3_name 
+                    || feature.properties.adm2_name;
+    let content = `<h2>${adminName}, ${feature.properties.adm0_name}</h2>`;
+
+    if (state[indicator] == null) {
       content += `<div class="stat">No data</div>`;
-    } 
-    else {
-      if (indicator=='severity') {
+    } else {
+      if (indicator === 'severity') {
         content += '<div class="stats-container">';
-        content += `<div><span>Needs Severity:</span><div class="stat">${prop.severity !== '' ? prop.severity : 'No data'}</div></div>`;
-        content += `<div><span>People in Need:</span><div class="stat">${prop.pin !== '' && prop.pin !== undefined ? shortFormat(prop.pin) : 'No data'}</div></div>`;
+        content += `<div><span>Needs Severity:</span><div class="stat">${state.severity}</div></div>`;
+        content += `<div><span>People in Need:</span><div class="stat">${shortFormat(state.pin)}</div></div>`;
         content += '</div>';
       }
-      else if (indicator=='pin') {
-        content += `<span>People in Need:</span><div class="stat">${prop.pin !== '' && prop.pin !== undefined ? shortFormat(prop.pin) : 'No data'}</div>`;
-      }
-      else if (indicator=='pinPer') {
-        content += `<span>Percentage of People in Need:</span><div class="stat">${prop.pinPer !== '' && prop.pinPer !== null && prop.pinPer !== undefined ? percentFormat(prop.pinPer) : 'No data'}</div>`;
-        content += `<br>People in Need: ${prop.pin ? shortFormat(prop.pin) : 'No data'}`;
-      }
-      else {}
 
-      content += `<br>Population: ${prop.population !== '' && prop.population !== null && prop.population !== undefined ? shortFormat(prop.population) : 'No data'}`;
-      if (prop.pinPer !== '' && prop.pinPer !== null && prop.pinPer !== undefined)
-        content += `<br>Percentage of People in Need: ${percentFormat(prop.pinPer)}`;
+      content += `<br>Population: ${state.population !== null ? shortFormat(state.population) : 'No data'}`;
+      if (state.population !== null)
+        content += `<br>Percentage of Population in Need: ${percentFormat(state.pinPer)}`;
     }
 
-    tooltip.setHTML(content).addTo(map).setLngLat(e.lngLat);
+    tooltip
+      .setHTML(content)
+      .setLngLat(e.lngLat)
+      .addTo(map);
   }
 
   onMount(() => {
