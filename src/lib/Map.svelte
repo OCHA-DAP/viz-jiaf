@@ -173,6 +173,7 @@
     const visibility = z >= 4 ? 'none' : 'visible';
 
     // toggle your layers
+    d3.select('.map-legend').style('opacity', z >= 4 ? 1 : 0);
     map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', visibility);
     map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', visibility);
     map.setLayoutProperty(INDICATOR_LAYER, 'visibility', z >= 4 ? 'visible' : 'none');
@@ -355,6 +356,7 @@
 
     if (region==='HRPs') {      
       map.once('moveend', () => {
+        d3.select('.map-legend').style('opacity', 0);
         map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'none');
         map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'visible');
         map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'visible');
@@ -362,6 +364,7 @@
     }
     else {
       map.once('moveend', () => {
+        d3.select('.map-legend').style('opacity', 1);
         map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
         map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
         map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
@@ -376,7 +379,7 @@
 
   // Mouse events for global and country layers
   function attachMouseEvents() {
-    // Add a click event listener to the country fill layer
+    // Global layer mouse events
     map.on('click', GLOBAL_FILL_LAYER, (e) => {
       const feature = e.features[0];
       const bbox = turf.bbox(feature);
@@ -387,6 +390,7 @@
           INDICATOR_LAYER,
           ['==', ['get', 'adm0_pcode'], feature.properties.adm0_pcode]
         );
+        d3.select('.map-legend').style('opacity', 1);
         map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
         map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
         map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
@@ -396,10 +400,7 @@
         padding: 100,      
         duration: 700    
       });
-
     });
-
-    // Change cursor on hover to indicate interactivity
     map.on('mouseenter', GLOBAL_FILL_LAYER, () => {
       map.getCanvas().style.cursor = 'pointer';
     });
@@ -407,10 +408,16 @@
       map.getCanvas().style.cursor = '';
     });
 
-
+    // Country layer mouse events
     map.on('mouseenter', INDICATOR_LAYER, onMouseEnter);
     map.on('mouseleave', INDICATOR_LAYER, onMouseLeave);
     map.on('mousemove', INDICATOR_LAYER, onMouseMove);
+
+    // Home button event
+    d3.select('.home-btn').on('click', () => {
+      region = 'HRPs';
+      selectRegion();
+    });
   }
 
   
@@ -470,7 +477,8 @@
   }
 </style>
 
-<div id="map"></div>
+<div id='map'></div>
+<div class='home-btn'><i class='humanitarianicons-House'></i></div>
 <div class='map-legend' bind:this={mapLegend}>
   <h4 class='legend-title'>Map Legend</h4>
   <svg>

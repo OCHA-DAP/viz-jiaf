@@ -250,6 +250,7 @@ select {
   font-family: 'Source Sans 3', sans-serif;
   font-size: 13px;
   height: 165px;
+  opacity: 0;
   overflow: hidden;
   padding: 15px 20px;
   position: absolute;
@@ -269,6 +270,26 @@ select {
       transform: translate(25px, 12.5px);
     }
   }
+}
+.home-btn {
+  align-items: center;
+  background-color: #FFF;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .1);
+  cursor: pointer;
+  display: flex;
+  height: 29px;
+  justify-content: center;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 29px;
+  &:hover {
+    background-color: #F2F2F2;
+  }
+}
+.mapboxgl-ctrl-top-right {
+  top: 40px !important;
 }
 
 
