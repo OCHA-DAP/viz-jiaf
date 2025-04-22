@@ -124,6 +124,8 @@
         }
       }, 'Countries 2-4');
 
+      
+
       // Country tileset
       map.addSource('countryTileset', {
         type: 'vector',
@@ -147,19 +149,34 @@
           'fill-outline-color': '#FFF'
         }
       }, 'Countries 2-4');
-      
+    
+      // Zoom to global features once tileset is loaded
+      map.once('sourcedata', (e) => {
+        if (e.sourceId === 'globalTileset' && e.isSourceLoaded) {
+          const source = map.getSource('globalTileset');
+          const [minX, minY, maxX, maxY] = source.bounds ||
+            (source.tileJSON && source.tileJSON.bounds);
+
+          map.fitBounds(
+            [
+              [minX, minY],
+              [maxX, maxY]
+            ],
+            { padding: 20, duration: 700 }
+          );
+        }
+      });
 
       attachMouseEvents();
       createMapLegend();
     });
 
 
+    // Attach data to features once country tileset is loaded
     map.on('sourcedata', (e) => {
+      // Todo: fix this is called more than once
       if (e.sourceId === 'countryTileset' && e.isSourceLoaded) {
         joinDataToFeatures();
-      }
-      if (e.sourceId === 'globalTileset' && e.isSourceLoaded) {
-        zoomToFeatures();
       }
     });
 
@@ -180,31 +197,6 @@
 
     // reset the filter
     map.setFilter(INDICATOR_LAYER, defaultFilter);
-  }
-
-
-  // Zoom to global features
-  function zoomToFeatures() {
-    const features = map.querySourceFeatures('globalTileset', {
-      sourceLayer: 'hrp22_polbnda_int_fieldmaps'
-    });
-    if (features.length===30) isLoaded = true; // debug
-
-    if (!isLoaded) {
-      if (!features.length) return;
-      const fc = turf.featureCollection(features);
-      const bbox = turf.bbox(fc);
-      map.fitBounds(
-        [
-          [bbox[0], bbox[1]],
-          [bbox[2], bbox[3]]
-        ],
-        {
-          padding: 20,
-          duration: 700
-        }
-      );
-    }
   }
 
 
@@ -385,11 +377,26 @@
       const bbox = turf.bbox(feature);
 
       map.once('moveend', () => {
-        // Show features for selected country
-        map.setFilter(
-          INDICATOR_LAYER,
-          ['==', ['get', 'adm0_pcode'], feature.properties.adm0_pcode]
-        );
+        // Todo: fix tileset for CAF and COD
+        if (feature.properties.adm0_pcode === 'CF') {
+          map.setFilter(
+            INDICATOR_LAYER,
+            ['==', ['get', 'adm0_name'], 'Central African Republic']
+          );
+        }
+        else if (feature.properties.adm0_pcode === 'CD') {
+          map.setFilter(
+            INDICATOR_LAYER,
+            ['==', ['get', 'adm0_name'], 'Democratic Republic of the Congo']
+          );
+        }
+        else {
+          // Show features for selected country
+          map.setFilter(
+            INDICATOR_LAYER,
+            ['==', ['get', 'adm0_pcode'], feature.properties.adm0_pcode]
+          );
+        }
         d3.select('.map-legend').style('opacity', 1);
         map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
         map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
