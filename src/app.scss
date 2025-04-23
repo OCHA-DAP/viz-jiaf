@@ -235,7 +235,7 @@ select {
     font-weight: normal;
     line-height: 18px;
     padding: 15px;
-    width: 300px;
+    width: 280px;
     h2 {
       margin-top: 0;
     }
@@ -325,6 +325,36 @@ p.no-data-msg {
 
 .key-figure-container {
   padding-left: 15px;
+}
+
+.sector-table {
+  border-spacing: 0;
+  margin-top: 20px;
+  width: 100%;  
+  .no-data {
+    text-align: center;
+    &::before {
+      content: '-';
+      display: inline-block;
+    }
+  }
+  td {
+    text-align: right;
+    &:first-child {
+      text-align: left;
+    }
+  }
+  thead {
+    td {
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+  }
+  tbody {    
+    tr:nth-child(odd) {
+      background-color: #EEE;
+    }
+  }
 }
 
 .sidebar {

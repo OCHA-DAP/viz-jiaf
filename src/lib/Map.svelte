@@ -18,7 +18,7 @@
     pinPer: ['#ffcdb2', '#f2b8aa', '#e4989c', '#b87e8b', '#925b7a'],
     severity: ['#BDCBDC', '#91ABC4', '#688DB0', '#46719B', '#2C5984']//['#ea9800', '#e57146', '#c35c65', '#8f556d', '#5c4d5c']
   };
-  const numFormat = d3.format(',');
+  const numFormat = d3.format(',.0f');
   const shortFormat = d3.format('.2s');
   const percentFormat = d3.format('.0%');
   const DEFAULT_COLOR = '#CCC';
@@ -123,32 +123,6 @@
           'line-width': 1          
         }
       }, 'Countries 2-4');
-
-      
-
-      // Country tileset
-      map.addSource('countryTileset', {
-        type: 'vector',
-        url: 'mapbox://humdata.bhueco0o',
-        promoteId: { 'hrp22_polbnda_subnational_fieldmaps': 'join_pcode' }
-      });
-
-      // Add country fill layer
-      map.addLayer({
-        id: INDICATOR_LAYER,
-        type: 'fill',
-        source: 'countryTileset',
-        'source-layer': 'hrp22_polbnda_subnational_fieldmaps',
-        minzoom: 2,
-        layout: {
-          'visibility': 'none'
-        },
-        filter: defaultFilter,
-        paint: {
-          'fill-color': getFillColorExpression(indicator),
-          'fill-outline-color': '#FFF'
-        }
-      }, 'Countries 2-4');
     
       // Zoom to global features once tileset is loaded
       map.once('sourcedata', (e) => {
@@ -167,6 +141,30 @@
         }
       });
 
+
+      // Country tileset
+      map.addSource('countryTileset', {
+        type: 'vector',
+        url: 'mapbox://humdata.bhueco0o',
+        promoteId: { 'hrp22_polbnda_subnational_fieldmaps': 'join_pcode' }
+      });
+
+      // Add country fill layer
+      map.addLayer({
+        id: INDICATOR_LAYER,
+        type: 'fill',
+        source: 'countryTileset',
+        'source-layer': 'hrp22_polbnda_subnational_fieldmaps',
+        minzoom: 2,
+        layout: {'visibility': 'none'},
+        filter: defaultFilter,
+        paint: {
+          'fill-color': getFillColorExpression(indicator),
+          'fill-outline-color': '#FFF'
+        }
+      }, 'Countries 2-4');
+
+
       attachMouseEvents();
       createMapLegend();
     });
@@ -174,7 +172,7 @@
 
     // Attach data to features once country tileset is loaded
     map.on('sourcedata', (e) => {
-      // Todo: fix this is called more than once
+      // Todo: this is called more than once
       if (e.sourceId === 'countryTileset' && e.isSourceLoaded) {
         joinDataToFeatures();
       }
@@ -264,14 +262,18 @@
     features.forEach(f => {
       const pcode = f.properties.join_pcode;
       const record = lookup[pcode];
+      if (!record) {
+        return;
+      }
 
       map.setFeatureState(
         { source: 'countryTileset', sourceLayer: 'hrp22_polbnda_subnational_fieldmaps', id: f.id },
         {
-          pin:       record?.['Final PiN'] ?? null,
-          pinPer:    record ? Math.min(record['PiN_percentage'], 1) : null,
-          severity:  record?.['Final Severity'] ?? null,
-          population: record?.['Population'] ?? null
+          pin:       record['Final PiN'],
+          pinPer:    Math.min(record['PiN_percentage'], 1),
+          severity:  record['Final Severity'],
+          population: record['Population'],
+          record: record
         }
       );
     });
@@ -377,7 +379,7 @@
       const bbox = turf.bbox(feature);
 
       map.once('moveend', () => {
-        // Todo: fix tileset for CAF and COD
+        // Todo: fix tileset for CAF and COD -- they are missing adm0_pcode
         if (feature.properties.adm0_pcode === 'CF') {
           map.setFilter(
             INDICATOR_LAYER,
@@ -461,9 +463,24 @@
         content += '</div>';
       }
 
-      content += `<br>Population: ${state.population !== null ? shortFormat(state.population) : 'No data'}`;
+      content += `<br>Population: ${state.population !== null ? numFormat(state.population) : 'No data'}`;
       if (state.population !== null)
         content += `<br>Percentage of Population in Need: ${percentFormat(state.pinPer)}`;
+
+      content += `<table class="sector-table"><thead><tr><td>Sector</td><td>PiN</td><td>PiN %</td></tr><thead><tbody>`;
+
+      // Sort sectors by value
+      const sectors = Object.entries(state.record.sectors)
+        .sort(([, a], [, b]) => b - a)
+        .reduce((acc, [k, v]) => {
+          acc[k] = v;
+          return acc;
+        }, {});
+
+      for (const [sector, value] of Object.entries(sectors)) {
+        content += `<tr><td>${sector}</td><td>${numFormat(value)}</td><td>${state.population!==null ? percentFormat(value/state.population) : '<div class="no-data"></div>'}</td></tr>`;
+      }
+      content += `</tbody></table>`;
     }
 
     tooltip

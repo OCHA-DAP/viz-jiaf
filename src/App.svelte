@@ -17,7 +17,7 @@
     // {name: 'Percentage of Populaton in Need', id: 'pinPer'},
   ];
 
-  const data_url = 'https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/output.json';
+  const data_url = 'https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/jiaf.json';
 
 
   function dataLoaded() {
