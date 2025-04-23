@@ -19,7 +19,6 @@
 
   const data_url = 'https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/jiaf.json';
 
-
   function dataLoaded() {
     dataLoading = false;
 

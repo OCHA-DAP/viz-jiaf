@@ -44,6 +44,17 @@
     .map(r => Math.min(r['PiN_percentage'], 1))
     .filter(v => v != null);
 
+  // Country codes are determined by geojson data
+  const regionList = {
+    "ROAP": ["AF","MMR"],
+    "ROWCA": ["BF","CF","TCD","CD","ML","NG"],
+    "ROLAC": ["CO","SV","GT","HT","HN","VE"],
+    "ROSEA": ["MZ","SO","SS","SD"],
+    "ROMENA": ["SY","YE"],
+    "ROCCA": ["UA"]
+  }
+
+
   // Update the layer and legend when indicator changes
   $: if (map && map.getLayer(INDICATOR_LAYER) && indicator) {
     // map.setPaintProperty(INDICATOR_LAYER, 'fill-color', getFillColorExpression(indicator));
@@ -344,11 +355,14 @@
 
   // Zoom into selected region. TODO: update features and scales with map extent
   function selectRegion() {
-    if (regionBoundaryData===undefined) return;
-    let regionFeature = regionBoundaryData.features.filter(d => d.properties.tbl_regcov_2020_ocha_Field3 == region);
-    let offset = 20;
+    if (!regionBoundaryData) return;
+    const regionFeature = regionBoundaryData.features.filter(d => d.properties.tbl_regcov_2020_ocha_Field3 == region);
+    const isoList = regionList[region];
+    const offset = 20;
 
     if (region==='HRPs') {      
+      map.setFilter(INDICATOR_LAYER, null);
+
       map.once('moveend', () => {
         d3.select('.map-legend').style('opacity', 0);
         map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'none');
@@ -357,6 +371,18 @@
       });
     }
     else {
+      const test = ['UA']
+      map.setFilter(INDICATOR_LAYER, [
+        'in',
+        ['get', 'adm0_pcode'],
+        ['literal', isoList]
+      ]);
+      // map.setFilter(INDICATOR_LAYER, [
+      //   'in',
+      //   ['slice', ['get', 'layer'], 0, 3],  // takes characters 0–2 of “cod-adm0 — cod_adm0” → “cod”
+      //   ['literal', isoList]               // your existing array of “cod”, “npl”, “png”, etc.
+      // ]);
+
       map.once('moveend', () => {
         d3.select('.map-legend').style('opacity', 1);
         map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
