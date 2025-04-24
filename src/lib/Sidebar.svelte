@@ -68,11 +68,12 @@
   <option value=''>All Regions</option>
 </select>
 
-<ul class='menu'>
+
+<!-- <ul class='menu'>
   {#each layers as {name, id}, index}
     <li class:active={selectedLayer === index} on:click={() => selectLayer(index)}>{name}</li>
   {/each}
-</ul>
+</ul> -->
 
 <!-- <div class='logos'>
   <a href='https://centre.humdata.org' target='_blank' rel='noopener'>

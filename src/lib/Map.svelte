@@ -484,8 +484,8 @@
     } else {
       if (indicator === 'severity') {
         content += '<div class="stats-container">';
-        content += `<div><span>Needs Severity:</span><div class="stat">${state.severity}</div></div>`;
-        content += `<div><span>People in Need:</span><div class="stat">${shortFormat(state.pin)}</div></div>`;
+        content += `<div><span>Needs Severity:</span><div class="stat">${state.severity===0 ? 'No data' : state.severity}</div></div>`;
+        content += `<div><span>People in Need:</span><div class="stat">${state.pin===0 ? state.pin : shortFormat(state.pin)}</div></div>`;
         content += '</div>';
       }
 
@@ -493,20 +493,22 @@
       if (state.population !== null)
         content += `<br>Percentage of Population in Need: ${percentFormat(state.pinPer)}`;
 
-      content += `<table class="sector-table"><thead><tr><td>Sector</td><td>PiN</td><td>PiN %</td></tr><thead><tbody>`;
-
       // Sort sectors by value
       const sectors = Object.entries(state.record.sectors)
         .sort(([, a], [, b]) => b - a)
         .reduce((acc, [k, v]) => {
-          acc[k] = v;
+          if (v > 0) acc[k] = v 
           return acc;
         }, {});
 
-      for (const [sector, value] of Object.entries(sectors)) {
-        content += `<tr><td>${sector}</td><td>${numFormat(value)}</td><td>${state.population!==null ? percentFormat(value/state.population) : '<div class="no-data"></div>'}</td></tr>`;
+      // Build sector table
+      if (Object.keys(sectors).length>0) {
+        content += `<table class="sector-table"><thead><tr><td>Sector</td><td>PiN</td><td>PiN %</td></tr><thead><tbody>`;
+        for (const [sector, value] of Object.entries(sectors)) {
+            content += `<tr><td>${sector}</td><td>${numFormat(value)}</td><td>${state.population!==null ? percentFormat(value/state.population) : '<div class="no-data"></div>'}</td></tr>`;
+        }
+        content += `</tbody></table>`;
       }
-      content += `</tbody></table>`;
     }
 
     tooltip
