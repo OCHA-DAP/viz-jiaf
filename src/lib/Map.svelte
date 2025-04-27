@@ -1,6 +1,7 @@
 <script>
-  import { onMount } from "svelte";
-  import mapboxgl from "mapbox-gl";
+  import { onMount } from 'svelte';
+  import Legend from './Legend.svelte';
+  import mapboxgl from 'mapbox-gl';
   import * as d3 from 'd3';
   import { legendColor } from 'd3-svg-legend';
   import * as turf from '@turf/turf';
@@ -46,12 +47,12 @@
 
   // Country codes are determined by geojson data
   const regionList = {
-    "ROAP": ["AF","MMR"],
-    "ROWCA": ["BF","CF","TCD","CD","ML","NG"],
-    "ROLAC": ["CO","SV","GT","HT","HN","VE"],
-    "ROSEA": ["MZ","SO","SS","SD"],
-    "ROMENA": ["SY","YE"],
-    "ROCCA": ["UA"]
+    "ROAP": ["AFG","MMR"],
+    "ROWCA": ["BFA","CAF","TCD","COD","MLI","NGA"],
+    "ROLAC": ["COL","SLV","GTM","HTI","HND","VEN"],
+    "ROSEA": ["MOZ","SOM","SSD","SDN"],
+    "ROMENA": ["SYR","YEM"],
+    "ROCCA": ["UKR"]
   }
 
 
@@ -109,7 +110,7 @@
 
       map.addSource('globalTileset', {
         type: 'vector',
-        url: 'mapbox://humdata.bviogwzx'
+        url: 'mapbox://humdata.4xk62xmb'
       });
 
       // Add global fill layer 
@@ -117,9 +118,9 @@
         id: GLOBAL_FILL_LAYER,
         type: 'fill',  
         source: 'globalTileset',
-        'source-layer': 'hrp22_polbnda_int_fieldmaps',
+        'source-layer': 'hrp21_polbnda_int_fieldmaps',
         paint: {
-          'fill-color': '#fce0de',
+          'fill-color': '#F8D8D3',
         }
       }, 'Countries 2-4');
 
@@ -128,36 +129,41 @@
         id: GLOBAL_LINE_LAYER,
         type: 'line',
         source: 'globalTileset',
-        'source-layer': 'hrp22_polbnda_int_fieldmaps', 
+        'source-layer': 'hrp21_polbnda_int_fieldmaps', 
         paint: {
-          'line-color': '#888', 
+          'line-color': '#BFBFBF', 
           'line-width': 1          
         }
       }, 'Countries 2-4');
+
+
+      // map.setPaintProperty('background', 'background-color', '#CCC');
+      // map.setPaintProperty('Lakes Fill Scale 6-10', 'fill-color', '#CCC');
+      // map.setPaintProperty('Lakes Fill Scale 6-10', 'line-color', '#CCC');
     
       // Zoom to global features once tileset is loaded
-      map.once('sourcedata', (e) => {
-        if (e.sourceId === 'globalTileset' && e.isSourceLoaded) {
-          const source = map.getSource('globalTileset');
-          const [minX, minY, maxX, maxY] = source.bounds ||
-            (source.tileJSON && source.tileJSON.bounds);
+      // map.once('sourcedata', (e) => {
+      //   if (e.sourceId === 'globalTileset' && e.isSourceLoaded) {
+      //     const source = map.getSource('globalTileset');
+      //     const [minX, minY, maxX, maxY] = source.bounds ||
+      //       (source.tileJSON && source.tileJSON.bounds);
 
-          map.fitBounds(
-            [
-              [minX, minY],
-              [maxX, maxY]
-            ],
-            { padding: 20, duration: 700 }
-          );
-        }
-      });
+      //     map.fitBounds(
+      //       [
+      //         [minX, minY],
+      //         [maxX, maxY]
+      //       ],
+      //       { padding: 20, duration: 700 }
+      //     );
+      //   }
+      // });
 
 
       // Country tileset
       map.addSource('countryTileset', {
         type: 'vector',
-        url: 'mapbox://humdata.bhueco0o',
-        promoteId: { 'hrp22_polbnda_subnational_fieldmaps': 'join_pcode' }
+        url: 'mapbox://humdata.27t1biv2',
+        promoteId: { 'hrp21_polbnda_subnational_fieldmaps': 'join_pcode' }
       });
 
       // Add country fill layer
@@ -165,7 +171,7 @@
         id: INDICATOR_LAYER,
         type: 'fill',
         source: 'countryTileset',
-        'source-layer': 'hrp22_polbnda_subnational_fieldmaps',
+        'source-layer': 'hrp21_polbnda_subnational_fieldmaps',
         minzoom: 2,
         layout: {'visibility': 'none'},
         filter: defaultFilter,
@@ -191,11 +197,13 @@
 
 
     // Get region boundary data
-    regionBoundaryData = await fetch('geojson/ocha-regions-bbox.geojson').then(res => res.json());
+    regionBoundaryData = await fetch('geojson/regions_with_bbox.geojson').then(res => res.json());
+    selectRegion();
   }
 
   function handleZoomFromControl() {
     const z = map.getZoom();
+    console.log('map zoom', z)
     const visibility = z >= 4 ? 'none' : 'visible';
 
     // toggle your layers
@@ -267,7 +275,7 @@
 
     // get the loaded features
     const features = map.querySourceFeatures('countryTileset', {
-      sourceLayer: 'hrp22_polbnda_subnational_fieldmaps'
+      sourceLayer: 'hrp21_polbnda_subnational_fieldmaps'
     });
 
     features.forEach(f => {
@@ -278,7 +286,7 @@
       }
 
       map.setFeatureState(
-        { source: 'countryTileset', sourceLayer: 'hrp22_polbnda_subnational_fieldmaps', id: f.id },
+        { source: 'countryTileset', sourceLayer: 'hrp21_polbnda_subnational_fieldmaps', id: f.id },
         {
           pin:       record['Final PiN'],
           pinPer:    Math.min(record['PiN_percentage'], 1),
@@ -356,12 +364,13 @@
   // Zoom into selected region. TODO: update features and scales with map extent
   function selectRegion() {
     if (!regionBoundaryData) return;
-    const regionFeature = regionBoundaryData.features.filter(d => d.properties.tbl_regcov_2020_ocha_Field3 == region);
+    const regionFeature = regionBoundaryData.features.filter(d => d.properties.region == region);
     const isoList = regionList[region];
     const offset = 20;
 
     if (region==='HRPs') {      
-      map.setFilter(INDICATOR_LAYER, null);
+      if (map.getLayer(INDICATOR_LAYER))
+        map.setFilter(INDICATOR_LAYER, null);
 
       map.once('moveend', () => {
         d3.select('.map-legend').style('opacity', 0);
@@ -371,17 +380,11 @@
       });
     }
     else {
-      const test = ['UA']
       map.setFilter(INDICATOR_LAYER, [
         'in',
-        ['get', 'adm0_pcode'],
+        ['get', 'adm0_pcode'],  
         ['literal', isoList]
       ]);
-      // map.setFilter(INDICATOR_LAYER, [
-      //   'in',
-      //   ['slice', ['get', 'layer'], 0, 3],  // takes characters 0–2 of “cod-adm0 — cod_adm0” → “cod”
-      //   ['literal', isoList]               // your existing array of “cod”, “npl”, “png”, etc.
-      // ]);
 
       map.once('moveend', () => {
         d3.select('.map-legend').style('opacity', 1);
@@ -405,26 +408,12 @@
       const bbox = turf.bbox(feature);
 
       map.once('moveend', () => {
-        // Todo: fix tileset for CAF and COD -- they are missing adm0_pcode
-        if (feature.properties.adm0_pcode === 'CF') {
-          map.setFilter(
-            INDICATOR_LAYER,
-            ['==', ['get', 'adm0_name'], 'Central African Republic']
-          );
-        }
-        else if (feature.properties.adm0_pcode === 'CD') {
-          map.setFilter(
-            INDICATOR_LAYER,
-            ['==', ['get', 'adm0_name'], 'Democratic Republic of the Congo']
-          );
-        }
-        else {
-          // Show features for selected country
-          map.setFilter(
-            INDICATOR_LAYER,
-            ['==', ['get', 'adm0_pcode'], feature.properties.adm0_pcode]
-          );
-        }
+        // Show features for selected country
+        map.setFilter(
+          INDICATOR_LAYER,
+          ['==', ['get', 'adm0_pcode'], feature.properties.adm0_pcode]
+        );
+        
         d3.select('.map-legend').style('opacity', 1);
         map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
         map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
@@ -471,7 +460,7 @@
     const id      = feature.id;
     const state = map.getFeatureState({
       source:      'countryTileset',
-      sourceLayer: 'hrp22_polbnda_subnational_fieldmaps',
+      sourceLayer: 'hrp21_polbnda_subnational_fieldmaps',
       id
     });
 
@@ -531,6 +520,16 @@
 
 <div id='map'></div>
 <div class='home-btn'><i class='humanitarianicons-House'></i></div>
+
+<!-- <div class='legend-key'>
+  <Legend
+    colors={colorRanges.severity}
+    values={indicatorValues.severity}
+    width={250}
+    height={50}
+  />
+</div> -->
+
 <div class='map-legend' bind:this={mapLegend}>
   <h4 class='legend-title'>Map Legend</h4>
   <svg>

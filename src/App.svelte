@@ -10,6 +10,7 @@
   let currentIndicator, currentRegion;
   let dataDict = {};
   let data;
+  let countries;
 
   const layers = [
     {name: 'Needs Severity', id: 'severity'},
@@ -22,7 +23,7 @@
   function dataLoaded() {
     dataLoading = false;
 
-    const countries = new Set(data.map(row => row["Admin 0"]));
+    countries = new Set(data.map(row => row["Admin 0"]));
     console.log(countries)
   }
 
@@ -64,7 +65,14 @@
 
   <div class='grid-container'>
     <div class='panel-content col-2'>
-      <Sidebar on:onLayerSelect={onLayerSelect} on:onRegionSelect={onRegionSelect} layers={layers} />
+      {#if countries}
+        <Sidebar 
+          on:onLayerSelect={onLayerSelect} 
+          on:onRegionSelect={onRegionSelect} 
+          layers={layers} 
+          countries={countries}
+        />
+      {/if}
     </div>
     <div class='main-content col-10'>
       {#if dataLoading}

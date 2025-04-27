@@ -171,16 +171,17 @@ hr {
   display: inline-block;
   margin-top: 0;
   position: relative;
-  &:after {
-    color: #CCC;
-    content: '\e94c';
-    font-family: 'Humanitarian-Icons-v02';
-    pointer-events: none;
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translate(0, -50%);
-  }
+  width: 100%;
+  // &:after {
+  //   color: #CCC;
+  //   content: '\e94c';
+  //   font-family: 'Humanitarian-Icons-v02';
+  //   pointer-events: none;
+  //   position: absolute;
+  //   right: 15px;
+  //   top: 50%;
+  //   transform: translate(0, -50%);
+  // }
 }
 select {
   -webkit-appearance: none;
@@ -292,6 +293,13 @@ select {
   top: 40px !important;
 }
 
+.legend-key {
+  background-color: rgba(255, 255, 255, 0.8);
+  bottom: 10px;
+  padding: 20px;
+  position: absolute;
+  right: 10px;
+}
 
 .stats-container {
   display: flex;

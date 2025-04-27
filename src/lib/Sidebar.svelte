@@ -1,15 +1,20 @@
 <script>
 	import * as d3 from 'd3';
+  import Select from 'svelte-select';
 	import { createEventDispatcher, onMount } from 'svelte';
 
   export let layers;
+  export let countries;
 
   let selectedRegion = '';
+  let selectValue = '';
 
+  console.log('countries',countries)
+  const countryList = [...countries];
   const dispatch = createEventDispatcher();
 
   //regional id/name list
-  const regionalList = [
+  const regionList = [
     {id: 'HRPs', name: 'All Regions'},
     {id: 'ROAP', name: 'Asia and the Pacific'},
     {id: 'ROCCA', name: 'Eastern Europe'},
@@ -31,9 +36,9 @@
     const select = d3.select('.region-select');
     select.html('');
 
-    // Bind data and create options from regionalList
+    // Bind data and create options from regionList
     select.selectAll('option')
-      .data(regionalList)
+      .data(regionList)
       .enter()
       .append('option')
         .text(function(d) { return d.name; })
@@ -46,6 +51,10 @@
   function onSelectRegion(event) {
     selectedRegion = event.target.value;
     dispatch('onRegionSelect', { message: selectedRegion });
+  }
+
+  function onSelect(event) {
+
   }
 
  	onMount(() => {
@@ -68,6 +77,18 @@
   <option value=''>All Regions</option>
 </select>
 
+<!-- <div class='select-wrapper'>
+  <label>Select a region or country:</label>
+  <div class='select-group'>
+    <Select 
+      items={countryList} 
+      bind:value={selectValue}
+      placeholder='Select'
+      showChevron
+      on:change={onSelect}
+    />
+  </div>
+</div> -->
 
 <!-- <ul class='menu'>
   {#each layers as {name, id}, index}
