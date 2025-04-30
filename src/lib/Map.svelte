@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, createEventDispatcher } from 'svelte';
   import Legend from './Legend.svelte';
   import mapboxgl from 'mapbox-gl';
   import * as d3 from 'd3';
@@ -10,6 +10,7 @@
   export let mapData = [];
   export let indicator;
   export let region = 'HRPs'; // Set default region
+  export let filter = { type: 'region', value: 'HRPs' };
 
   mapboxgl.baseApiUrl = 'https://data.humdata.org/mapbox';
   mapboxgl.accessToken = 'cacheToken';
@@ -29,7 +30,7 @@
 
   const defaultFilter = ['!=', ['get', 'adm0_pcode'], 'NE']; // exclude Niger for now
 
-  let map, mapLegend, regionBoundaryData, tooltip;
+  let map, mapLegend, regionBoundaryData, countryBoundaryData, tooltip;
   let isLoaded = false;
 
   let indicatorValues = {
@@ -55,6 +56,13 @@
     "ROCCA": ["UKR"]
   }
 
+  const dispatch = createEventDispatcher();
+  let selectValue = '';
+
+  function send(val) {
+    selectValue = val;
+    dispatch('sendValue', selectValue);
+  }
 
   // Update the layer and legend when indicator changes
   $: if (map && map.getLayer(INDICATOR_LAYER) && indicator) {
@@ -63,9 +71,12 @@
     // createMapLegend();
   }
 
-  // Update region when selected region changes. TODO: update map features and scales  
-  $: if (map && region) {
-    selectRegion();
+  // Update map when selected region or country changes
+  $: if (map && filter) {
+    if (filter.type==="region" || filter.type===undefined)
+      selectRegion();
+    if (filter.type==="country")
+      selectCountry();
   }
 
   // TODO: set up responsive view
@@ -78,6 +89,9 @@
   
   // Initialize the map and add tileset layers
   async function initializeMap() {
+    // Get country bbox
+    countryBoundaryData = await fetch('geojson/country-bboxes.json').then(res => res.json());
+
     const fillExpression = ["match", ["get", "country_code"]];
 
     map = new mapboxgl.Map({
@@ -203,7 +217,6 @@
 
   function handleZoomFromControl() {
     const z = map.getZoom();
-    console.log('map zoom', z)
     const visibility = z >= 4 ? 'none' : 'visible';
 
     // toggle your layers
@@ -288,9 +301,9 @@
       map.setFeatureState(
         { source: 'countryTileset', sourceLayer: 'hrp21_polbnda_subnational_fieldmaps', id: f.id },
         {
-          pin:       record['Final PiN'],
-          pinPer:    Math.min(record['PiN_percentage'], 1),
-          severity:  record['Final Severity'],
+          pin: record['Final PiN'],
+          pinPer: Math.min(record['PiN_percentage'], 1),
+          severity: record['Final Severity'],
           population: record['Population'],
           record: record
         }
@@ -361,8 +374,9 @@
   }
 
 
-  // Zoom into selected region. TODO: update features and scales with map extent
+  // Zoom into selected region
   function selectRegion() {
+    const region = filter.value;
     if (!regionBoundaryData) return;
     const regionFeature = regionBoundaryData.features.filter(d => d.properties.region == region);
     const isoList = regionList[region];
@@ -374,9 +388,9 @@
 
       map.once('moveend', () => {
         d3.select('.map-legend').style('opacity', 0);
-        map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'none');
-        map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'visible');
-        map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'visible');
+        if (map.getLayer(INDICATOR_LAYER)) map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'none');
+        if (map.getLayer(GLOBAL_FILL_LAYER)) map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'visible');
+        if (map.getLayer(GLOBAL_LINE_LAYER)) map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'visible');
       });
     }
     else {
@@ -400,29 +414,50 @@
     });
   }
 
+  function selectCountry() {
+    const iso3 = filter.value;
+    const [minLng, minLat, maxLng, maxLat] = countryBoundaryData[iso3] || [];
+    if (!minLng) {
+      console.warn(`No bbox for ${iso3}`);
+      return;
+    }
+    map.fitBounds([[minLng, minLat], [maxLng, maxLat]], {
+      padding: 20,
+      duration: 700
+    })
+
+    map.once('moveend', () => {
+      showCountry(filter.value);
+    });
+  }
+
+  function showCountry(iso3) {
+    // Show features for selected country
+    map.setFilter(
+      INDICATOR_LAYER,
+      ['==', ['get', 'adm0_pcode'], iso3]
+    );
+    
+    d3.select('.map-legend').style('opacity', 1);
+    map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
+    map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
+    map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
+  }
+
   // Mouse events for global and country layers
   function attachMouseEvents() {
     // Global layer mouse events
     map.on('click', GLOBAL_FILL_LAYER, (e) => {
-      const feature = e.features[0];
+      const feature = e.features[0];      
       const bbox = turf.bbox(feature);
-
-      map.once('moveend', () => {
-        // Show features for selected country
-        map.setFilter(
-          INDICATOR_LAYER,
-          ['==', ['get', 'adm0_pcode'], feature.properties.adm0_pcode]
-        );
-        
-        d3.select('.map-legend').style('opacity', 1);
-        map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
-        map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
-        map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
-      });
-
       map.fitBounds(bbox, {
         padding: 100,      
         duration: 700    
+      });
+
+      map.once('moveend', () => {
+        showCountry(feature.properties.adm0_pcode);
+        send(feature.properties.adm0_pcode);
       });
     });
     map.on('mouseenter', GLOBAL_FILL_LAYER, () => {
@@ -439,11 +474,10 @@
 
     // Home button event
     d3.select('.home-btn').on('click', () => {
-      region = 'HRPs';
+      filter = { type: 'region', value: 'HRPs' };
       selectRegion();
     });
   }
-
   
   function onMouseEnter(e) {
     map.getCanvas().style.cursor = 'pointer';

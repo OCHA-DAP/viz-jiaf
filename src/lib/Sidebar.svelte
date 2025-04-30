@@ -4,26 +4,17 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 
   export let layers;
-  export let countries;
+  export let countryList;
+  export let regionList;
+  export let selectValue = '';
 
-  let selectedRegion = '';
-  let selectValue = '';
+  let selectedFilter = "";
+  //let selectValue = "AFG";
 
-  console.log('countries',countries)
-  const countryList = [...countries];
   const dispatch = createEventDispatcher();
 
-  //regional id/name list
-  const regionList = [
-    {id: 'HRPs', name: 'All Regions'},
-    {id: 'ROAP', name: 'Asia and the Pacific'},
-    {id: 'ROCCA', name: 'Eastern Europe'},
-    {id: 'ROLAC', name: 'Latin America and the Caribbean'},
-    {id: 'ROMENA', name: 'Middle East and North Africa'},
-    {id: 'ROSEA', name: 'Southern and Eastern Africa'},
-    {id: 'ROWCA', name: 'West and Central Africa'}
-  ];
-
+  let items = [];
+  let groupBy;
   let selectedLayer = 0;
 
   function selectLayer(index) {
@@ -31,34 +22,35 @@
     dispatch('onLayerSelect', { message: selectedLayer });
   }
 
-  function createRegionSelect() {
-    // Clear select contents
-    const select = d3.select('.region-select');
-    select.html('');
+  function createFilterSelect(regions, countries) {
+    const regionItems = regions.map(({ id, name }) => ({
+      value: id,
+      label: name,
+      group: 'region'
+    }));
 
-    // Bind data and create options from regionList
-    select.selectAll('option')
-      .data(regionList)
-      .enter()
-      .append('option')
-        .text(function(d) { return d.name; })
-        .attr('value', function(d) { return d.id; });
+    const countryItems = countries.map(({ code, name }) => ({
+      value: code,
+      label: name,
+      group: 'country'
+    }));
 
-    // Set the select's value to the default option value
-    select.property('value', select.select('option').node().value);
+    return [...regionItems, ...countryItems];
   }
 
-  function onSelectRegion(event) {
-    selectedRegion = event.target.value;
-    dispatch('onRegionSelect', { message: selectedRegion });
+  function onFilterSelect(event) {
+    selectedFilter = { type: event.detail.group, value: event.detail.value };
+    dispatch('onFilterSelect', { message: selectedFilter });
   }
 
-  function onSelect(event) {
-
+  function onClearSelect(event) {
+    selectedFilter = {type: "region", value: "HRPs"};
+    dispatch('onFilterSelect', { message: selectedFilter });
   }
 
  	onMount(() => {
-    createRegionSelect();
+    items = createFilterSelect(regionList, countryList);
+    groupBy = (item) => item.group;
 	})
 </script>
 
@@ -72,23 +64,24 @@
 </div>
 
 <h2>Intersectoral Needs Severity Dashboard</h2>
-<label for='regionSelect' class='visuallyhidden'>Select a region: </label>
+<!-- <label for='regionSelect' class='visuallyhidden'>Select a region: </label>
 <select id='regionSelect' class='region-select' on:change={onSelectRegion}>
   <option value=''>All Regions</option>
-</select>
+</select> -->
 
-<!-- <div class='select-wrapper'>
+<div class='select-wrapper'>
   <label>Select a region or country:</label>
   <div class='select-group'>
     <Select 
-      items={countryList} 
+      items={items} 
       bind:value={selectValue}
+      {groupBy}
       placeholder='Select'
-      showChevron
-      on:change={onSelect}
+      on:change={onFilterSelect}
+      on:clear={onClearSelect}
     />
   </div>
-</div> -->
+</div>
 
 <!-- <ul class='menu'>
   {#each layers as {name, id}, index}

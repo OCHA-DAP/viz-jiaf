@@ -7,10 +7,11 @@
   
 
   let dataLoading = true;
-  let currentIndicator, currentRegion;
+  let currentIndicator, currentFilter;
   let dataDict = {};
   let data;
-  let countries;
+  let countryList;
+  let selectValue = '';
 
   const layers = [
     {name: 'Needs Severity', id: 'severity'},
@@ -18,13 +19,46 @@
     // {name: 'Percentage of Populaton in Need', id: 'pinPer'},
   ];
 
-  const data_url = 'https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/jiaf.json';
+  const regionList = [
+    {id: 'ROAP', name: 'Asia and the Pacific'},
+    {id: 'ROCCA', name: 'Eastern Europe'},
+    {id: 'ROLAC', name: 'Latin America and the Caribbean'},
+    {id: 'ROMENA', name: 'Middle East and North Africa'},
+    {id: 'ROSEA', name: 'Southern and Eastern Africa'},
+    {id: 'ROWCA', name: 'West and Central Africa'}
+  ];
+
+  const data_url = 'local-data.json';//https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/jiaf.json';
 
   function dataLoaded() {
     dataLoading = false;
+    countryList = getCountries(data);
+  }
 
-    countries = new Set(data.map(row => row["Admin 0"]));
-    console.log(countries)
+  function getCountries(data) {
+    const countries = new Set();
+    const countryList = [];
+    const excludeList = new Set(["CMR", "NER", "ETH"]);  
+
+    data.forEach(item => {
+      const iso3 = item["ISO3"];
+      const admin0 = item["Admin 0"];
+
+      // SKIP if on the exclusion list
+      if (excludeList.has(iso3)) {
+        return; 
+      }
+
+      if (!countries.has(iso3)) {
+        countries.add(iso3);
+        countryList.push({ code: iso3, name: admin0 });
+      }
+    });
+    return countryList;
+  }
+
+  function handleSelectValue(event) {
+    selectValue = event.detail;
   }
 
   function onLayerSelect(event) {
@@ -32,8 +66,8 @@
     currentIndicator = layers[layerID].id;
   }
 
-  function onRegionSelect(event) {
-    currentRegion = event.detail.message;
+  function onFilterSelect(event) {
+    currentFilter = event.detail.message;
   }
 
   function initTracking() {
@@ -64,21 +98,27 @@
 <main>
 
   <div class='grid-container'>
-    <div class='panel-content col-2'>
-      {#if countries}
+    <div class='panel-content col-3'>
+      {#if countryList}
         <Sidebar 
           on:onLayerSelect={onLayerSelect} 
-          on:onRegionSelect={onRegionSelect} 
+          on:onFilterSelect={onFilterSelect} 
           layers={layers} 
-          countries={countries}
+          countryList={countryList}
+          regionList={regionList}
+          selectValue={selectValue}
         />
       {/if}
     </div>
-    <div class='main-content col-10'>
+    <div class='main-content col-9'>
       {#if dataLoading}
         <p class='no-data-msg'>Loading...</p>
       {:else}
-        <Map mapData={data} indicator={currentIndicator} region={currentRegion} />
+        <Map 
+          mapData={data} 
+          indicator={currentIndicator} 
+          filter={currentFilter}
+          on:sendValue={handleSelectValue} />
       {/if}
     </div>
   </div>
