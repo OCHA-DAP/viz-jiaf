@@ -59,7 +59,7 @@
   const dispatch = createEventDispatcher();
   let selectValue = '';
 
-  function send(val) {
+  function onCountrySelect(val) {
     selectValue = val;
     dispatch('sendValue', selectValue);
   }
@@ -457,7 +457,7 @@
 
       map.once('moveend', () => {
         showCountry(feature.properties.adm0_pcode);
-        send(feature.properties.adm0_pcode);
+        onCountrySelect(feature.properties.adm0_pcode);
       });
     });
     map.on('mouseenter', GLOBAL_FILL_LAYER, () => {
@@ -476,6 +476,7 @@
     d3.select('.home-btn').on('click', () => {
       filter = { type: 'region', value: 'HRPs' };
       selectRegion();
+      onCountrySelect("");
     });
   }
   
