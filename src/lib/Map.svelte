@@ -138,18 +138,6 @@
         }
       }, 'Countries 2-4');
 
-      // Add global outline layer
-      map.addLayer({
-        id: GLOBAL_LINE_LAYER,
-        type: 'line',
-        source: 'globalTileset',
-        'source-layer': 'hrp21_polbnda_int_fieldmaps', 
-        paint: {
-          'line-color': '#BFBFBF', 
-          'line-width': 1          
-        }
-      }, 'Countries 2-4');
-
 
       // map.setPaintProperty('background', 'background-color', '#CCC');
       // map.setPaintProperty('Lakes Fill Scale 6-10', 'fill-color', '#CCC');
@@ -196,6 +184,18 @@
       }, 'Countries 2-4');
 
 
+      // Add global outline layer
+      map.addLayer({
+        id: GLOBAL_LINE_LAYER,
+        type: 'line',
+        source: 'globalTileset',
+        'source-layer': 'hrp21_polbnda_int_fieldmaps', 
+        paint: {
+          'line-color': '#FFF', 
+          'line-width': 1         
+        }
+      }, 'Countries 2-4');
+
       attachMouseEvents();
       createMapLegend();
     });
@@ -217,13 +217,14 @@
 
   function handleZoomFromControl() {
     const z = map.getZoom();
-    const visibility = z >= 4 ? 'none' : 'visible';
+    const minZoom = 3;
+    const visibility = z >= minZoom ? 'none' : 'visible';
 
     // toggle your layers
-    d3.select('.map-legend').style('opacity', z >= 4 ? 1 : 0);
+    d3.select('.map-legend').style('opacity', z >= minZoom ? 1 : 0);
     map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', visibility);
-    map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', visibility);
-    map.setLayoutProperty(INDICATOR_LAYER, 'visibility', z >= 4 ? 'visible' : 'none');
+    //map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', visibility);
+    map.setLayoutProperty(INDICATOR_LAYER, 'visibility', z >= minZoom ? 'visible' : 'none');
 
     // reset the filter
     map.setFilter(INDICATOR_LAYER, defaultFilter);
@@ -390,7 +391,7 @@
         d3.select('.map-legend').style('opacity', 0);
         if (map.getLayer(INDICATOR_LAYER)) map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'none');
         if (map.getLayer(GLOBAL_FILL_LAYER)) map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'visible');
-        if (map.getLayer(GLOBAL_LINE_LAYER)) map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'visible');
+        //if (map.getLayer(GLOBAL_LINE_LAYER)) map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'visible');
       });
     }
     else {
@@ -404,7 +405,7 @@
         d3.select('.map-legend').style('opacity', 1);
         map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
         map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
-        map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
+        //map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
       });
     }
 
@@ -441,7 +442,7 @@
     d3.select('.map-legend').style('opacity', 1);
     map.setLayoutProperty(INDICATOR_LAYER, 'visibility', 'visible');
     map.setLayoutProperty(GLOBAL_FILL_LAYER, 'visibility', 'none');
-    map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
+    //map.setLayoutProperty(GLOBAL_LINE_LAYER, 'visibility', 'none');
   }
 
   // Mouse events for global and country layers
@@ -449,16 +450,17 @@
     // Global layer mouse events
     map.on('click', GLOBAL_FILL_LAYER, (e) => {
       const feature = e.features[0];      
-      const bbox = turf.bbox(feature);
-      map.fitBounds(bbox, {
-        padding: 100,      
-        duration: 700    
-      });
+      onCountrySelect(feature.properties.adm0_pcode);
+      // const bbox = turf.bbox(feature);
+      // map.fitBounds(bbox, {
+      //   padding: 100,      
+      //   duration: 700    
+      // });
 
-      map.once('moveend', () => {
-        showCountry(feature.properties.adm0_pcode);
-        onCountrySelect(feature.properties.adm0_pcode);
-      });
+      // map.once('moveend', () => {
+      //   showCountry(feature.properties.adm0_pcode);
+      //   onCountrySelect(feature.properties.adm0_pcode);
+      // });
     });
     map.on('mouseenter', GLOBAL_FILL_LAYER, () => {
       map.getCanvas().style.cursor = 'pointer';

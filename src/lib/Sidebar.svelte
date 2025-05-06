@@ -7,15 +7,17 @@
   export let countryList;
   export let regionList;
   export let selectValue = '';
+  export let totals = { totalPiN: 0, totalPopulation: 0 };
 
-  let selectedFilter = "";
-  //let selectValue = "AFG";
+  let selectedFilter = {type: "region", value: "HRPs"};
 
+  const shortFormat = d3.format('.2s');
   const dispatch = createEventDispatcher();
 
   let items = [];
   let groupBy;
   let selectedLayer = 0;
+
 
   function selectLayer(index) {
     selectedLayer = index;
@@ -64,10 +66,6 @@
 </div>
 
 <h2>Intersectoral Needs Severity Dashboard</h2>
-<!-- <label for='regionSelect' class='visuallyhidden'>Select a region: </label>
-<select id='regionSelect' class='region-select' on:change={onSelectRegion}>
-  <option value=''>All Regions</option>
-</select> -->
 
 <div class='select-wrapper'>
   <label>Select a region or country:</label>
@@ -80,6 +78,35 @@
       on:change={onFilterSelect}
       on:clear={onClearSelect}
     />
+  </div>
+</div>
+
+
+<div class="key-figure-container">
+  <div class="key-figure">
+    <div class="inner">
+      <h3>Total Number of People in Need</h3>
+      <div class="num pin">
+        {#if totals.totalPiN}
+          {shortFormat(totals.totalPiN)}
+        {:else}
+          –
+        {/if}
+      </div>
+    </div>
+  </div>
+
+  <div class="key-figure">
+    <div class="inner">
+      <h3>Total Population</h3>
+      <div class="num pop">
+        {#if totals.totalPopulation}
+          {shortFormat(totals.totalPopulation)}
+        {:else}
+          –
+        {/if}
+      </div>
+    </div>
   </div>
 </div>
 

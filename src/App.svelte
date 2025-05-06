@@ -7,11 +7,17 @@
   
 
   let dataLoading = true;
-  let currentIndicator, currentFilter;
+  let currentIndicator;
   let dataDict = {};
   let data;
   let countryList;
   let selectValue = '';
+  let totals = { totalPiN: 0, totalPopulation: 0 };
+  let currentFilter = {type: 'region', value: 'HRPs'}
+
+  $: if (data && currentFilter) {
+    totals = calculateTotals();
+  }
 
   const layers = [
     {name: 'Needs Severity', id: 'severity'},
@@ -33,6 +39,7 @@
   function dataLoaded() {
     dataLoading = false;
     countryList = getCountries(data);
+    totals = calculateTotals();
   }
 
   function getCountries(data) {
@@ -59,6 +66,7 @@
 
   function handleSelectValue(event) {
     selectValue = event.detail;
+    currentFilter = event.detail==='' ? {type: 'region', value: 'HRPs'} : {type: 'country', value: selectValue};
   }
 
   function onLayerSelect(event) {
@@ -68,6 +76,20 @@
 
   function onFilterSelect(event) {
     currentFilter = event.detail.message;
+  }
+
+  function calculateTotals() {
+    const filter = currentFilter.type === 'country' ? 'ISO3' : 'Region';
+    const currentData = currentFilter.value === 'HRPs' ? data : data.filter(item => item[filter] === currentFilter.value);
+    return currentData.reduce((acc, item) => {
+      const pin = Number(item['Final PiN']) || 0;
+      const pop = Number(item['Population']) || 0;
+
+      return {
+        totalPiN: acc.totalPiN + pin,
+        totalPopulation: acc.totalPopulation + pop
+      };
+    }, { totalPiN: 0, totalPopulation: 0 });
   }
 
   function initTracking() {
@@ -85,7 +107,7 @@
       d3.json(data_url)
     ]).then(function(result) {
       data = result[0];
-
+      console.log(data)
       currentIndicator = 'severity';
       dataLoaded();
     });
@@ -101,12 +123,13 @@
     <div class='panel-content col-3'>
       {#if countryList}
         <Sidebar 
+          bind:selectValue
           on:onLayerSelect={onLayerSelect} 
           on:onFilterSelect={onFilterSelect} 
-          layers={layers} 
-          countryList={countryList}
-          regionList={regionList}
-          selectValue={selectValue}
+          {layers} 
+          {countryList}
+          {regionList}
+          {totals}
         />
       {/if}
     </div>
