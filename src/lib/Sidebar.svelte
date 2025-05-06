@@ -12,6 +12,7 @@
   let selectedFilter = {type: "region", value: "HRPs"};
 
   const shortFormat = d3.format('.2s');
+  const percentFormat = d3.format('.0%');
   const dispatch = createEventDispatcher();
 
   let items = [];
@@ -82,8 +83,34 @@
 </div>
 
 
-<div class="key-figure-container">
-  <div class="key-figure">
+<div class="key-figure-container grid-container">
+  <div class="key-figure col-6">
+    <div class="inner">
+      <h3>Number of Countries</h3>
+      <div class="num">
+        {#if totals.numCountries}
+          {totals.numCountries}
+        {:else}
+          –
+        {/if}
+      </div>
+    </div>
+  </div>
+
+  <div class="key-figure col-6">
+    <div class="inner">
+      <h3>Total Population</h3>
+      <div class="num pop">
+        {#if totals.totalPopulation}
+          {shortFormat(totals.totalPopulation)}
+        {:else}
+          –
+        {/if}
+      </div>
+    </div>
+  </div>
+
+  <div class="key-figure col-6">
     <div class="inner">
       <h3>Total Number of People in Need</h3>
       <div class="num pin">
@@ -96,12 +123,12 @@
     </div>
   </div>
 
-  <div class="key-figure">
+  <div class="key-figure col-6">
     <div class="inner">
-      <h3>Total Population</h3>
+      <h3>Percentage of People in Need</h3>
       <div class="num pop">
         {#if totals.totalPopulation}
-          {shortFormat(totals.totalPopulation)}
+          {percentFormat(totals.totalPiN/totals.totalPopulation)}
         {:else}
           –
         {/if}
@@ -109,6 +136,9 @@
     </div>
   </div>
 </div>
+
+
+
 
 <!-- <ul class='menu'>
   {#each layers as {name, id}, index}

@@ -81,15 +81,23 @@
   function calculateTotals() {
     const filter = currentFilter.type === 'country' ? 'ISO3' : 'Region';
     const currentData = currentFilter.value === 'HRPs' ? data : data.filter(item => item[filter] === currentFilter.value);
-    return currentData.reduce((acc, item) => {
-      const pin = Number(item['Final PiN']) || 0;
-      const pop = Number(item['Population']) || 0;
+    const countries = new Set(currentData.map(item => item.ISO3));
+    const numCountries = countries.size===24 ? 21 : countries.size; // FIX: 3 countries excluded
 
-      return {
-        totalPiN: acc.totalPiN + pin,
-        totalPopulation: acc.totalPopulation + pop
-      };
-    }, { totalPiN: 0, totalPopulation: 0 });
+    const { totalPiN, totalPopulation } = currentData.reduce(
+      (acc, item) => {
+        acc.totalPiN        += Number(item['Final PiN'])    || 0;
+        acc.totalPopulation += Number(item['Population'])  || 0;
+        return acc;
+      },
+      { totalPiN: 0, totalPopulation: 0 }
+    );
+
+    return {
+      totalPiN,
+      totalPopulation,
+      numCountries
+    };
   }
 
   function initTracking() {
