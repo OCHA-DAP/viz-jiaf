@@ -14,6 +14,7 @@
   let selectValue = '';
   let totals = { totalPiN: 0, totalPopulation: 0 };
   let currentFilter = {type: 'region', value: 'HRPs'}
+  let currentData = [];
 
   $: if (data && currentFilter) {
     totals = calculateTotals();
@@ -34,7 +35,7 @@
     {id: 'ROWCA', name: 'West and Central Africa'}
   ];
 
-  const data_url = 'local-data.json';//https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/jiaf.json';
+  const data_url = 'local-data2.json';//https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/jiaf.json';
 
   function dataLoaded() {
     dataLoading = false;
@@ -80,7 +81,7 @@
 
   function calculateTotals() {
     const filter = currentFilter.type === 'country' ? 'ISO3' : 'Region';
-    const currentData = currentFilter.value === 'HRPs' ? data : data.filter(item => item[filter] === currentFilter.value);
+    currentData = currentFilter.value === 'HRPs' ? data : data.filter(item => item[filter] === currentFilter.value);
     const countries = new Set(currentData.map(item => item.ISO3));
     const numCountries = countries.size===24 ? 21 : countries.size; // FIX: 3 countries excluded
 
@@ -138,6 +139,7 @@
           {countryList}
           {regionList}
           {totals}
+          {currentData}
         />
       {/if}
     </div>

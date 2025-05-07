@@ -351,7 +351,7 @@
     }
     else if (indicator==='severity') {
       legendFormat = numFormat;
-      legendTitle = 'Needs Severity Level';
+      legendTitle = 'Intersectoral Needs Severity Level';
     }
     else {
       legendFormat = numFormat;
@@ -496,7 +496,7 @@
     const feature = e.features[0];
     const id      = feature.id;
     const state = map.getFeatureState({
-      source:      'countryTileset',
+      source: 'countryTileset',
       sourceLayer: 'hrp21_polbnda_subnational_fieldmaps',
       id
     });
@@ -510,7 +510,7 @@
     } else {
       if (indicator === 'severity') {
         content += '<div class="stats-container">';
-        content += `<div><span>Needs Severity:</span><div class="stat">${state.severity===0 ? 'No data' : state.severity}</div></div>`;
+        content += `<div><span>Intersectoral Severity:</span><div class="stat">${state.severity===0 ? 'No data' : state.severity}</div></div>`;
         content += `<div><span>People in Need:</span><div class="stat">${state.pin===0 ? state.pin : shortFormat(state.pin)}</div></div>`;
         content += '</div>';
       }
@@ -519,19 +519,27 @@
       if (state.population !== null)
         content += `<br>Percentage of Population in Need: ${percentFormat(state.pinPer)}`;
 
-      // Sort sectors by value
-      const sectors = Object.entries(state.record.sectors)
-        .sort(([, a], [, b]) => b - a)
-        .reduce((acc, [k, v]) => {
-          if (v > 0) acc[k] = v 
-          return acc;
+      // Sort sectors by severity value first and then pin
+      const sectors = Object
+        .entries(state.record.sectors)  
+        .filter(([, v]) => v.severity > 0 || v.pin > 0)
+        .sort(([, a], [, b]) => {
+          const severityDiff = b.severity - a.severity;
+          return severityDiff !== 0 
+            ? severityDiff 
+            : (b.pin - a.pin);
+        })
+        .reduce((obj, [key, val]) => {
+          obj[key] = val;
+          return obj;
         }, {});
 
       // Build sector table
       if (Object.keys(sectors).length>0) {
-        content += `<table class="sector-table"><thead><tr><td>Sector</td><td>PiN</td><td>PiN %</td></tr><thead><tbody>`;
+        content += `<table class="sector-table"><thead><tr><td>Severity</td><td>Sector</td><td>PiN</td><td>PiN %</td></tr><thead><tbody>`;
         for (const [sector, value] of Object.entries(sectors)) {
-            content += `<tr><td>${sector}</td><td>${numFormat(value)}</td><td>${state.population!==null ? percentFormat(value/state.population) : '<div class="no-data"></div>'}</td></tr>`;
+          console.log(sector, value)
+            content += `<tr><td>${sector}</td><td>${value.severity===null ? '–' : numFormat(value.severity)}</td><td>${value.pin===null ? '–' : numFormat(value.pin)}</td><td>${state.population!==null ? percentFormat(value.pin/state.population) : '<div class="no-data"></div>'}</td></tr>`;
         }
         content += `</tbody></table>`;
       }

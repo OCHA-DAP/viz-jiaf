@@ -2,12 +2,14 @@
 	import * as d3 from 'd3';
   import Select from 'svelte-select';
 	import { createEventDispatcher, onMount } from 'svelte';
+  import Bar from './Bar.svelte'
 
   export let layers;
   export let countryList;
   export let regionList;
   export let selectValue = '';
   export let totals = { totalPiN: 0, totalPopulation: 0 };
+  export let currentData;
 
   let selectedFilter = {type: "region", value: "HRPs"};
 
@@ -137,6 +139,9 @@
   </div>
 </div>
 
+<!-- <div class="bar-container">
+  <Bar data={currentData} />
+</div> -->
 
 
 
