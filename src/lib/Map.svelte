@@ -18,7 +18,7 @@
   const colorRanges = {
     pin: ['#ffcdb2', '#f2b8aa', '#e4989c', '#b87e8b', '#925b7a'],
     pinPer: ['#ffcdb2', '#f2b8aa', '#e4989c', '#b87e8b', '#925b7a'],
-    severity: ['#BDCBDC', '#91ABC4', '#688DB0', '#46719B', '#2C5984']//['#ea9800', '#e57146', '#c35c65', '#8f556d', '#5c4d5c']
+    severity: ['#C6E5F1', '#70BEDD', '#0A9DD9', '#066F9A', '#044B66']//['#ea9800', '#e57146', '#c35c65', '#8f556d', '#5c4d5c']
   };
   const numFormat = d3.format(',.0f');
   const shortFormat = d3.format('.2s');
