@@ -191,7 +191,7 @@
         source: 'globalTileset',
         'source-layer': 'hrp21_polbnda_int_fieldmaps', 
         paint: {
-          'line-color': '#FFF', 
+          'line-color': '#666', 
           'line-width': 1         
         }
       }, 'Countries 2-4');
