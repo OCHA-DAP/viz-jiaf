@@ -85,6 +85,8 @@ hr {
 }
 
 .panel-content {
+  height: 100vh;
+  overflow: auto;
   padding: 20px;
 }
 
@@ -423,6 +425,7 @@ p.no-data-msg {
     }
   }
 }
+
 
 @media (max-width: 768px) {
   body {

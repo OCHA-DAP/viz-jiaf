@@ -122,6 +122,11 @@
         });
       });
 
+
+      // map.setPaintProperty('background', 'background-color', '#DEDEDE');
+      // map.setPaintProperty('Lakes Fill Scale 6-10', 'fill-color', '#DEDEDE');
+      // map.setPaintProperty('Lakes Fill Scale 6-10', 'fill-outline-color', '#DEDEDE');
+
       map.addSource('globalTileset', {
         type: 'vector',
         url: 'mapbox://humdata.4xk62xmb'
@@ -138,10 +143,6 @@
         }
       }, 'Countries 2-4');
 
-
-      // map.setPaintProperty('background', 'background-color', '#CCC');
-      // map.setPaintProperty('Lakes Fill Scale 6-10', 'fill-color', '#CCC');
-      // map.setPaintProperty('Lakes Fill Scale 6-10', 'line-color', '#CCC');
     
       // Zoom to global features once tileset is loaded
       // map.once('sourcedata', (e) => {
@@ -538,7 +539,6 @@
       if (Object.keys(sectors).length>0) {
         content += `<table class="sector-table"><thead><tr><td>Severity</td><td>Sector</td><td>PiN</td><td>PiN %</td></tr><thead><tbody>`;
         for (const [sector, value] of Object.entries(sectors)) {
-          console.log(sector, value)
             content += `<tr><td>${sector}</td><td>${value.severity===null ? '–' : numFormat(value.severity)}</td><td>${value.pin===null ? '–' : numFormat(value.pin)}</td><td>${state.population!==null ? percentFormat(value.pin/state.population) : '<div class="no-data"></div>'}</td></tr>`;
         }
         content += `</tbody></table>`;
@@ -558,8 +558,9 @@
 
 <style>
   #map {
-    width: 100%;
+    background-color: '#DEDEDE';
     height: 100vh;
+    width: 100%;
   }
 </style>
 

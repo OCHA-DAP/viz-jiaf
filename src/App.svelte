@@ -140,6 +140,7 @@
           {regionList}
           {totals}
           {currentData}
+          selectedFilter={currentFilter}
         />
       {/if}
     </div>

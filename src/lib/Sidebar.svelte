@@ -10,8 +10,8 @@
   export let selectValue = '';
   export let totals = { totalPiN: 0, totalPopulation: 0 };
   export let currentData;
-
-  let selectedFilter = {type: "region", value: "HRPs"};
+  export let selectedFilter = {type: "region", value: "HRPs"};
+  
 
   const shortFormat = d3.format('.2s');
   const percentFormat = d3.format('.0%');
@@ -139,9 +139,12 @@
   </div>
 </div>
 
-<!-- <div class="bar-container">
-  <Bar data={currentData} />
-</div> -->
+{#if selectedFilter.type === "country"}
+  <div class="rankingChart-container">
+    <h3>Top 10 Areas by Level of Intersectoral Severity and Number of People in Need</h3>
+    <Bar data={currentData} valueFormat={shortFormat} />
+  </div>
+{/if}
 
 
 
@@ -161,6 +164,12 @@
 </div> -->
 
 <style lang='scss'>
+  .rankingChart-container {
+    margin-top: 30px;
+    h3 {
+      margin-bottom: 20px;
+    }
+  }
   .menu li {
     cursor: pointer;
   }
