@@ -11,7 +11,7 @@
   export let totals = { totalPiN: 0, totalPopulation: 0 };
   export let currentData;
   export let selectedFilter = {type: "region", value: "HRPs"};
-  
+
 
   const shortFormat = d3.format('.2s');
   const percentFormat = d3.format('.0%');
@@ -182,6 +182,7 @@
     align-items: center;
     display: flex;
     margin-bottom: 30px;
+    margin-top: 20px;
     a:first-child {
       margin-right: 20px;
     }

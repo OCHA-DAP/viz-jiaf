@@ -128,23 +128,25 @@
 
 <main>
 
-  <div class='grid-container'>
-    <div class='panel-content col-3'>
-      {#if countryList}
-        <Sidebar 
-          bind:selectValue
-          on:onLayerSelect={onLayerSelect} 
-          on:onFilterSelect={onFilterSelect} 
-          {layers} 
-          {countryList}
-          {regionList}
-          {totals}
-          {currentData}
-          selectedFilter={currentFilter}
-        />
-      {/if}
+  <div class='container'>
+    <div class='panel-content'>
+      <div class='panel-inner'>
+        {#if countryList}
+          <Sidebar 
+            bind:selectValue
+            on:onLayerSelect={onLayerSelect} 
+            on:onFilterSelect={onFilterSelect} 
+            {layers} 
+            {countryList}
+            {regionList}
+            {totals}
+            {currentData}
+            selectedFilter={currentFilter}
+          />
+        {/if}
+      </div>
     </div>
-    <div class='main-content col-9'>
+    <div class='main-content'>
       {#if dataLoading}
         <p class='no-data-msg'>Loading...</p>
       {:else}
@@ -161,7 +163,30 @@
 
 
 <style lang='scss'>
+  // .panel-content {
+  //   position: relative;
+  // }
+  // .panel-inner {
+  //   height: 100vh;
+  //   overflow-x: hidden;
+  //   overflow-y: auto;
+  //   padding-bottom: 30px;
+  // }
+  .container {
+    display: flex;
+    height: 100vh;
+    flex-flow: row;
+  }
   .panel-content {
-    position: relative;
+    height: 100vh;
+    width: 30%;
+  }
+  .panel-inner {
+    height: 100%;
+    padding: 0 20px;
+    overflow-y: auto;
+  }
+  .main-content {
+    width: 70%;
   }
 </style>
