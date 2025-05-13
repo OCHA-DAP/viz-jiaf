@@ -475,6 +475,9 @@
     map.on('mouseleave', INDICATOR_LAYER, onMouseLeave);
     map.on('mousemove', INDICATOR_LAYER, onMouseMove);
 
+    // Handle zooming from scroll wheel or pinch zoom
+    map.on('zoom', handleZoomFromControl);
+
     // Home button event
     d3.select('.home-btn').on('click', () => {
       filter = { type: 'region', value: 'HRPs' };
