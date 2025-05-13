@@ -537,7 +537,7 @@
 
       // Build sector table
       if (Object.keys(sectors).length>0) {
-        content += `<table class="sector-table"><thead><tr><td>Severity</td><td>Sector</td><td>PiN</td><td>PiN %</td></tr><thead><tbody>`;
+        content += `<table class="sector-table"><thead><tr><td>Sector</td><td>Severity</td><td>PiN</td><td>PiN %</td></tr><thead><tbody>`;
         for (const [sector, value] of Object.entries(sectors)) {
             content += `<tr><td>${sector}</td><td>${value.severity===null ? '–' : numFormat(value.severity)}</td><td>${value.pin===null ? '–' : numFormat(value.pin)}</td><td>${state.population!==null ? percentFormat(value.pin/state.population) : '<div class="no-data"></div>'}</td></tr>`;
         }
