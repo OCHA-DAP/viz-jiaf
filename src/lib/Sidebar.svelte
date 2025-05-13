@@ -166,6 +166,7 @@
 <style lang='scss'>
   .rankingChart-container {
     margin-top: 30px;
+    margin-bottom: 20px;
     h3 {
       margin-bottom: 20px;
     }

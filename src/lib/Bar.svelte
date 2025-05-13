@@ -126,9 +126,6 @@
 </div> -->
 
 <style lang='scss'>
-	.chart-group {
-		margin-bottom: 20px;
-	}
 	p {
 		font-size: 14px;
 		margin: 0;
