@@ -476,7 +476,21 @@
     map.on('mousemove', INDICATOR_LAYER, onMouseMove);
 
     // Handle zooming from scroll wheel or pinch zoom
-    map.on('zoom', handleZoomFromControl);
+    map.on('zoom', (e) => {
+      const orig = e.originalEvent;
+      if (!orig) {
+        //console.log('Zoom started programmatically or via API');
+        return;
+      }
+
+      // Desktop mouse wheel
+      if ((orig instanceof WheelEvent && !orig.ctrlKey) || (orig instanceof WheelEvent && orig.ctrlKey) || (orig instanceof TouchEvent && orig.touches.length > 1)) {
+        handleZoomFromControl();
+      }
+      else {
+        //console.log(`Zoom start: ${orig.type}`);
+      }
+    });
 
     // Home button event
     d3.select('.home-btn').on('click', () => {
