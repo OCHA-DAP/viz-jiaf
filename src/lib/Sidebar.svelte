@@ -11,6 +11,7 @@
   export let totals = { totalPiN: 0, totalPopulation: 0 };
   export let currentData;
   export let selectedFilter = {type: "region", value: "HRPs"};
+  export let isMobile = false;
 
 
   const shortFormat = d3.format('.2s');
@@ -142,7 +143,7 @@
 {#if selectedFilter.type === "country"}
   <div class="rankingChart-container">
     <h3>Top 10 Areas by Level of Intersectoral Severity and Number of People in Need</h3>
-    <Bar data={currentData} valueFormat={shortFormat} />
+    <Bar data={currentData} valueFormat={shortFormat} width={isMobile ? 282 : 312} />
   </div>
 {/if}
 

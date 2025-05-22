@@ -4,7 +4,6 @@
   import * as d3 from 'd3';
   import Map from './lib/Map.svelte'
   import Sidebar from './lib/Sidebar.svelte'
-  
 
   let dataLoading = true;
   let currentIndicator;
@@ -15,6 +14,9 @@
   let totals = { totalPiN: 0, totalPopulation: 0 };
   let currentFilter = {type: 'region', value: 'HRPs'}
   let currentData = [];
+  let isMobile = false;
+  let collapsed = false;
+
 
   $: if (data && currentFilter) {
     totals = calculateTotals();
@@ -36,6 +38,7 @@
   ];
 
   const data_url = 'local-data2.json';//https://raw.githubusercontent.com/baripembo/hdx-scraper-jiaf/refs/heads/main/output/jiaf.json';
+
 
   function dataLoaded() {
     dataLoading = false;
@@ -111,6 +114,10 @@
     });
   }
 
+  function toggle() {
+    if (isMobile) collapsed = !collapsed;
+  }
+
   onMount(async () => {
     Promise.all([
       d3.json(data_url)
@@ -121,6 +128,10 @@
       dataLoaded();
     });
 
+    // Detect mobile
+    isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    //if (isMobile) collapsed = true;
+
     //initTracking();
   });
 </script>
@@ -129,7 +140,7 @@
 <main>
 
   <div class='container'>
-    <div class='panel-content'>
+    <div class='panel-content' class:collapsed={collapsed}>
       <div class='panel-inner'>
         {#if countryList}
           <Sidebar 
@@ -141,10 +152,16 @@
             {regionList}
             {totals}
             {currentData}
+            {isMobile}
             selectedFilter={currentFilter}
           />
         {/if}
       </div>
+      <div class='panel-button' on:click={toggle}>
+        <i class={collapsed
+          ? 'humanitarianicons-Double-arrow-right'
+          : 'humanitarianicons-Double-arrow-left'}>
+        </i></div>
     </div>
     <div class='main-content'>
       {#if dataLoading}
@@ -163,15 +180,6 @@
 
 
 <style lang='scss'>
-  // .panel-content {
-  //   position: relative;
-  // }
-  // .panel-inner {
-  //   height: 100vh;
-  //   overflow-x: hidden;
-  //   overflow-y: auto;
-  //   padding-bottom: 30px;
-  // }
   .container {
     display: flex;
     height: 100vh;
@@ -179,14 +187,62 @@
   }
   .panel-content {
     height: 100vh;
+    transition: max-width 0.3s ease;
     width: 30%;
-  }
-  .panel-inner {
-    height: 100%;
-    padding: 0 20px;
-    overflow-y: auto;
+    &.collapsed {
+      max-width: 30px;
+      .panel-inner {
+        display: none;
+      }
+
+    }    
+    .panel-inner {
+      height: 100%;
+      padding: 0 20px;
+      overflow-y: auto;
+    }
+    .panel-button {
+      //background-color: yellow;
+      display: none;
+      height: 100%;
+      padding-right: 3px;
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 20px;
+      i {
+        position: absolute;
+        transform: translateY(-50%);
+        top: 50%;
+      }
+    }
   }
   .main-content {
     width: 70%;
+  }
+
+  @media (max-width: 600px) {
+    .container {
+     display: block;
+     position: relative;
+    }
+    .panel-content {
+      background-color: rgba(255, 255, 255, 0.85);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 75%;
+      z-index: 3;
+      .panel-button {
+        display: block;
+      }
+      .panel-inner {
+        padding-right: 40px;
+      }
+    }
+    .main-content {
+      width: 100%;
+      z-index: 1;
+    }
   }
 </style>
