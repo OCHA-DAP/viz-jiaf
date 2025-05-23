@@ -486,7 +486,7 @@
 
     // Home button event
     d3.select('.home-btn').on('click', () => {
-      tooltip.remove();
+      if (isMobile) tooltip.remove();
       filter = { type: 'region', value: 'HRPs' };
       selectRegion();
       onCountrySelect('');
@@ -561,9 +561,11 @@
       .setLngLat(tooltipPos)
       .addTo(map);
 
-    const el = tooltip.getElement().querySelector('.mapboxgl-popup-content');
-    const h = el.offsetHeight;
-    tooltip.setOffset([-20, -h/2]);
+    if (isMobile) {
+      const el = tooltip.getElement().querySelector('.mapboxgl-popup-content');
+      const h = el.offsetHeight;
+      tooltip.setOffset([-20, -h/2]);
+    }
   }
 
   onMount(() => {
