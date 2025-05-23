@@ -11,6 +11,12 @@
   export let indicator;
   export let region = 'HRPs'; // Set default region
   export let filter = { type: 'region', value: 'HRPs' };
+  export let isMobile = false;
+
+  export function closeTooltip() {
+    tooltip.remove();
+  }
+  
 
   mapboxgl.baseApiUrl = 'https://data.humdata.org/mapbox';
   mapboxgl.accessToken = 'cacheToken';
@@ -65,11 +71,11 @@
   }
 
   // Update the layer and legend when indicator changes
-  $: if (map && map.getLayer(INDICATOR_LAYER) && indicator) {
+  //$: if (map && map.getLayer(INDICATOR_LAYER) && indicator) {
     // map.setPaintProperty(INDICATOR_LAYER, 'fill-color', getFillColorExpression(indicator));
     // d3.select('.legend-body').selectAll('*').remove();
     // createMapLegend();
-  }
+  //}
 
   // Update map when selected region or country changes
   $: if (map && filter) {
@@ -79,14 +85,6 @@
       selectCountry();
   }
 
-  // TODO: set up responsive view
-  export const isMobile = () => {
-    const userAgentCheck = /Mobi|Android/i.test(navigator.userAgent);
-    const screenSizeCheck = window.matchMedia("(max-width: 767px)").matches;
-    return userAgentCheck || screenSizeCheck;
-  }
-
-  
   // Initialize the map and add tileset layers
   async function initializeMap() {
     // Get country bbox
@@ -107,8 +105,8 @@
        .addControl(new mapboxgl.AttributionControl(), 'bottom-left');
 
     tooltip = new mapboxgl.Popup({
-      closeButton: false,
-      closeOnClick: false,
+      closeButton: isMobile ? true : false,
+      closeOnClick: isMobile ? true : false,
       className: 'map-tooltip'
     });
 
@@ -117,7 +115,6 @@
       const zoomOutBtn = document.querySelector('.mapboxgl-ctrl-zoom-out');
       [zoomInBtn, zoomOutBtn].forEach(btn => {
         btn.addEventListener('click', () => {
-          // wait for *this* zoom to finish, then run only once
           map.once('zoomend', handleZoomFromControl);
         });
       });
@@ -452,16 +449,6 @@
     map.on('click', GLOBAL_FILL_LAYER, (e) => {
       const feature = e.features[0];      
       onCountrySelect(feature.properties.adm0_pcode);
-      // const bbox = turf.bbox(feature);
-      // map.fitBounds(bbox, {
-      //   padding: 100,      
-      //   duration: 700    
-      // });
-
-      // map.once('moveend', () => {
-      //   showCountry(feature.properties.adm0_pcode);
-      //   onCountrySelect(feature.properties.adm0_pcode);
-      // });
     });
     map.on('mouseenter', GLOBAL_FILL_LAYER, () => {
       map.getCanvas().style.cursor = 'pointer';
@@ -471,9 +458,14 @@
     });
 
     // Country layer mouse events
-    map.on('mouseenter', INDICATOR_LAYER, onMouseEnter);
-    map.on('mouseleave', INDICATOR_LAYER, onMouseLeave);
-    map.on('mousemove', INDICATOR_LAYER, onMouseMove);
+    if (isMobile) {
+      map.on('click', INDICATOR_LAYER, onMouseMove);
+    }
+    else {
+      map.on('mouseenter', INDICATOR_LAYER, onMouseEnter);
+      map.on('mouseleave', INDICATOR_LAYER, onMouseLeave);
+      map.on('mousemove', INDICATOR_LAYER, onMouseMove);
+    }
 
     // Handle zooming from scroll wheel or pinch zoom
     map.on('zoom', (e) => {
@@ -494,9 +486,10 @@
 
     // Home button event
     d3.select('.home-btn').on('click', () => {
+      tooltip.remove();
       filter = { type: 'region', value: 'HRPs' };
       selectRegion();
-      onCountrySelect("");
+      onCountrySelect('');
     });
   }
   
@@ -562,10 +555,15 @@
       }
     }
 
+    const tooltipPos = (isMobile) ? map.getCenter() : e.lngLat;
     tooltip
       .setHTML(content)
-      .setLngLat(e.lngLat)
+      .setLngLat(tooltipPos)
       .addTo(map);
+
+    const el = tooltip.getElement().querySelector('.mapboxgl-popup-content');
+    const h = el.offsetHeight;
+    tooltip.setOffset([-20, -h/2]);
   }
 
   onMount(() => {
