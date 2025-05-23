@@ -143,7 +143,7 @@
 {#if selectedFilter.type === "country"}
   <div class="rankingChart-container">
     <h3>Top 10 Areas by Level of Intersectoral Severity and Number of People in Need</h3>
-    <Bar data={currentData} valueFormat={shortFormat} width={isMobile ? 282 : 312} />
+    <Bar data={currentData} valueFormat={shortFormat} width={isMobile ? 282 : 312}/>
   </div>
 {/if}
 

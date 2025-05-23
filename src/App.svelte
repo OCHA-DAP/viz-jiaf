@@ -16,7 +16,7 @@
   let currentData = [];
   let isMobile = false;
   let collapsed = false;
-
+  let mapRef;
 
   $: if (data && currentFilter) {
     totals = calculateTotals();
@@ -115,8 +115,12 @@
   }
 
   function toggle() {
-    if (isMobile) collapsed = !collapsed;
+    if (isMobile) {
+      collapsed = !collapsed;
+      mapRef.closeTooltip();
+    }
   }
+
 
   onMount(async () => {
     Promise.all([
@@ -130,7 +134,6 @@
 
     // Detect mobile
     isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    //if (isMobile) collapsed = true;
 
     //initTracking();
   });
@@ -167,10 +170,12 @@
       {#if dataLoading}
         <p class='no-data-msg'>Loading...</p>
       {:else}
-        <Map 
+        <Map
+          bind:this={mapRef}
           mapData={data} 
           indicator={currentIndicator} 
           filter={currentFilter}
+          {isMobile}
           on:sendValue={handleSelectValue} />
       {/if}
     </div>
